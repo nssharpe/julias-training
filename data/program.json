@@ -185,14 +185,14 @@
   ],
   "prehab": {
     "daily": [
-      { "id": "supine-er-dowel", "name": "Supine shoulder ER with dowel", "sets": 3, "reps": "10 holds", "load": "dowel", "rest": "30s", "tempo": "5s hold + relax" },
-      { "id": "childs-pose-thread", "name": "Child's pose with thread the needle", "sets": 3, "reps": "8/side", "load": "bw", "rest": "—", "tempo": "slow" }
+      { "id": "supine-er-dowel", "name": "Supine shoulder ER with dowel", "sets": 3, "reps": "5 holds", "load": "dowel", "rest": "30s", "tempo": "5s hold + relax" },
+      { "id": "childs-pose-thread", "name": "Child's pose with thread the needle", "sets": 3, "reps": "30s/side", "load": "bw", "rest": "—", "tempo": "slow" }
     ],
     "alternating": [
-      { "id": "quad-ytm", "name": "Quadruped unilateral Y/T/M (front-lever bias)", "sets": 3, "reps": "8 each / side", "load": "5 lb", "rest": "45s", "tempo": "2-1-2" },
-      { "id": "sl-er-dumbbell", "name": "Side-lying shoulder ER (towel + DB)", "sets": 3, "reps": "12/side", "load": "5 lb", "rest": "45s", "tempo": "2-1-2" },
+      { "id": "quad-ytm", "name": "Quadruped unilateral Y/T/M (front-lever bias)", "sets": 3, "reps": "15 each / side", "load": "5 lb", "rest": "45s", "tempo": "2-1-2" },
+      { "id": "sl-er-dumbbell", "name": "Side-lying shoulder ER (towel + DB)", "sets": 3, "reps": "10/side", "load": "5 lb", "rest": "45s", "tempo": "2-1-2" },
       { "id": "sl-shoulder-flexion", "name": "Side-lying shoulder flexion", "sets": 3, "reps": "12/side", "load": "5 lb", "rest": "45s", "tempo": "2-1-2" },
-      { "id": "sa-punch-band", "name": "Single-arm punch with resistance", "sets": 3, "reps": "12/side", "load": "band", "rest": "45s", "tempo": "1-0-1" }
+      { "id": "sa-punch-band", "name": "Single-arm punch with resistance", "sets": 3, "reps": "10/side", "load": "band", "rest": "45s", "tempo": "1-0-1" }
     ]
   }
 }
