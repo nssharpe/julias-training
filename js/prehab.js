@@ -23,7 +23,8 @@ export async function renderPrehab(root) {
   root.appendChild(head);
 
   for (const it of todays) {
-    const checks = items[it.id] || Array(it.sets).fill(false);
+    const saved = items[it.id] || [];
+    const checks = Array.from({ length: it.sets }, (_, i) => Boolean(saved[i]));
     const el = document.createElement("article");
     el.className = "prehab-item";
     el.innerHTML = `
