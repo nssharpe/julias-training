@@ -47,8 +47,17 @@ export function locate(program, state) {
 // Is today an "alternating" pre-hab day? Use ISO day-of-year parity, anchored
 // to the program start so it's stable.
 export function isAlternatingDay(state) {
-  const start = new Date(state.programStartISO);
-  const now = new Date();
-  const days = Math.floor((now - start) / 86400000);
+  // Compare local calendar days, not raw UTC timestamps — otherwise an evening
+  // sign-up can flip parity because toISOString() rolls over at UTC midnight.
+  const startKey = localDateKey(new Date(state.programStartISO));
+  const todayKey = localDateKey(new Date());
+  const days = Math.round((Date.parse(todayKey) - Date.parse(startKey)) / 86400000);
   return days % 2 === 0;
+}
+
+function localDateKey(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const da = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${da}`;
 }
