@@ -60,6 +60,7 @@ export async function renderStrength(root, phaseStrip) {
   root.appendChild(bar);
 
   // Populate history + suggestions per card
+  const draft = loadDraft(loc.current.id);
   for (const { ex, el } of cardEls) {
     const history = await getHistoryForExercise(ex.id, 5);
     const lastEl = el.querySelector("[data-last]");
@@ -70,11 +71,17 @@ export async function renderStrength(root, phaseStrip) {
       lastEl.textContent = "Last: " + last.sets.map(s => `${s.reps}${ex.unit === "sec" ? "s" : ""} @ ${s.load}`).join(", ");
     }
     const suggestion = suggest(history, ex);
+    const exDraft = draft[ex.id] || {};
     el.querySelectorAll("input[data-set]").forEach(inp => {
       const i = Number(inp.dataset.set);
       const field = inp.dataset.field;
       const v = suggestion[i]?.[field];
       if (v !== undefined && v !== "") inp.placeholder = String(v);
+      // Restore any in-progress value she typed before navigating away.
+      const saved = exDraft[i]?.[field];
+      if (saved !== undefined && saved !== "") inp.value = String(saved);
+      // Persist on every keystroke so nothing is lost on nav / tab switch / reload.
+      inp.addEventListener("input", () => saveDraftField(loc.current.id, ex.id, i, field, inp.value));
     });
   }
 
@@ -85,6 +92,7 @@ export async function renderStrength(root, phaseStrip) {
     session.dateISO = isoDay();
     try {
       await saveSession(session);
+      clearDraft(loc.current.id);
       // Only advance queue if logging the *current* superset (not nav'd prev/next).
       if (cursorOffset === 0) {
         await setState({ queueIndex: (state.queueIndex + 1) });
@@ -135,6 +143,29 @@ function renderPhaseStrip(el, loc, program) {
     <div>${next ? "next: " + escapeHtml(next.name) : "final phase"}</div>
   `;
 }
+
+// ─── Draft persistence ──────────────────────────────────────────────────────
+// In-progress inputs are saved per-superset in localStorage so nothing is lost
+// when navigating between supersets, switching tabs, or reloading. Cleared on
+// successful log.
+const DRAFT_PREFIX = "draft:";
+function draftKey(supersetId) { return DRAFT_PREFIX + supersetId; }
+function loadDraft(supersetId) {
+  try { return JSON.parse(localStorage.getItem(draftKey(supersetId)) || "{}"); }
+  catch { return {}; }
+}
+function saveDraftField(supersetId, exId, setIdx, field, value) {
+  const d = loadDraft(supersetId);
+  d[exId] ??= {};
+  d[exId][setIdx] ??= {};
+  if (value === "") delete d[exId][setIdx][field];
+  else d[exId][setIdx][field] = value;
+  if (Object.keys(d[exId][setIdx]).length === 0) delete d[exId][setIdx];
+  if (Object.keys(d[exId]).length === 0) delete d[exId];
+  if (Object.keys(d).length === 0) localStorage.removeItem(draftKey(supersetId));
+  else localStorage.setItem(draftKey(supersetId), JSON.stringify(d));
+}
+function clearDraft(supersetId) { localStorage.removeItem(draftKey(supersetId)); }
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
