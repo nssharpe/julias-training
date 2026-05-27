@@ -2,28 +2,41 @@ import { loadProgram, locate } from "./program.js";
 import { getState, getRecentSessions, getPrehabRange } from "./db.js";
 
 export async function renderTracking(root) {
-  const program = await loadProgram();
-  const state = await getState();
+  // Paint section shells immediately so the tab switch feels instant; each
+  // section fills in independently once its data lands.
+  const [program, state] = await Promise.all([loadProgram(), getState()]);
   const loc = locate(program, state);
-  const sessions = await getRecentSessions(100);
-  const prehab = await getPrehabRange(56); // 8 weeks
 
   root.innerHTML = "";
+  const phaseSec = section("Phase progress", phaseSection(loc, program));
+  const weekSec = section("Compliance — supersets/week", placeholder());
+  const prehabSec = section("Pre-hab daily compliance (28d)", placeholder());
+  const trendSec = section("Strength progress", placeholder());
+  const recentSec = section("Recent sessions", placeholder());
+  root.append(phaseSec, weekSec, prehabSec, trendSec, recentSec);
 
-  // Phase progress
-  root.appendChild(section("Phase progress", phaseSection(loc, program)));
+  // Sessions (one query) feeds three sections.
+  getRecentSessions(100).then(sessions => {
+    replaceBody(weekSec, weeklyBars(sessions));
+    replaceBody(trendSec, exerciseTrends(sessions, program));
+    replaceBody(recentSec, recentList(sessions));
+  });
+  // Prehab range (parallel fetch) feeds one.
+  getPrehabRange(56).then(range => {
+    replaceBody(prehabSec, prehabCompliance(range, program));
+  });
+}
 
-  // Compliance: supersets/week last 8 weeks
-  root.appendChild(section("Compliance — supersets/week", weeklyBars(sessions)));
-
-  // Pre-hab compliance %
-  root.appendChild(section("Pre-hab daily compliance (28d)", prehabCompliance(prehab, program)));
-
-  // Strength progress per exercise
-  root.appendChild(section("Strength progress", exerciseTrends(sessions, program)));
-
-  // Recent activity
-  root.appendChild(section("Recent sessions", recentList(sessions)));
+function placeholder() {
+  const d = document.createElement("div");
+  d.className = "kv";
+  d.innerHTML = `<span>Loading…</span><span class="v">·</span>`;
+  return d;
+}
+function replaceBody(sectionEl, body) {
+  const card = sectionEl.querySelector(".card");
+  card.innerHTML = "";
+  card.appendChild(body);
 }
 
 function section(title, body) {

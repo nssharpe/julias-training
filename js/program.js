@@ -2,7 +2,10 @@ let programCache = null;
 
 export async function loadProgram() {
   if (programCache) return programCache;
-  const res = await fetch("data/program.json", { cache: "no-cache" });
+  // Let HTTP caching work — GitHub Pages sends ETags. The browser will conditional-
+  // GET and almost always get a 304. If you push a program change, a hard refresh
+  // (or PWA reinstall) is enough to bust the cache.
+  const res = await fetch("data/program.json");
   programCache = await res.json();
   return programCache;
 }

@@ -2,10 +2,14 @@ import { loadProgram, isAlternatingDay } from "./program.js";
 import { getState, getPrehabDay, setPrehabDay, getPrehabRange, isoDay } from "./db.js";
 
 export async function renderPrehab(root) {
-  const program = await loadProgram();
-  const state = await getState();
+  // Paint the shell + checkboxes as soon as we have today's doc + program. The
+  // streak (which needs ~60 docs) is computed async and patched in once ready.
+  const [program, state, dayDoc] = await Promise.all([
+    loadProgram(),
+    getState(),
+    getPrehabDay(isoDay()),
+  ]);
   const dayKey = isoDay();
-  const dayDoc = await getPrehabDay(dayKey);
   const items = dayDoc.items || {};
 
   const showAlt = isAlternatingDay(state);
@@ -14,13 +18,15 @@ export async function renderPrehab(root) {
     ...(showAlt ? program.prehab.alternating.map(x => ({ ...x, group: "alt" })) : []),
   ];
 
-  const streak = await computeStreak(program);
-
   root.innerHTML = "";
   const head = document.createElement("div");
   head.className = "streak";
-  head.innerHTML = `<strong>${streak}🔥</strong> day streak (daily items)${showAlt ? "" : " · alternating items off today"}`;
+  head.innerHTML = `<strong>…🔥</strong> day streak (daily items)${showAlt ? "" : " · alternating items off today"}`;
   root.appendChild(head);
+  // Compute the streak in the background so checkboxes are interactive immediately.
+  computeStreak(program).then(streak => {
+    head.innerHTML = `<strong>${streak}🔥</strong> day streak (daily items)${showAlt ? "" : " · alternating items off today"}`;
+  });
 
   for (const it of todays) {
     const saved = items[it.id] || [];
