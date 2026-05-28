@@ -5,6 +5,7 @@ import {
 import { initDb } from "./db.js";
 import { renderStrength } from "./strength.js";
 import { renderPrehab } from "./prehab.js";
+import { renderMobility } from "./mobility.js";
 import { renderTracking } from "./tracking.js";
 
 // ─── Firebase config ────────────────────────────────────────────────────────
@@ -28,6 +29,7 @@ const appEl = document.getElementById("app");
 const phaseStrip = document.getElementById("phase-strip");
 const tabStrength = document.getElementById("tab-strength");
 const tabPrehab = document.getElementById("tab-prehab");
+const tabMobility = document.getElementById("tab-mobility");
 const tabTracking = document.getElementById("tab-tracking");
 
 document.getElementById("signin-btn").onclick = async () => {
@@ -62,11 +64,15 @@ async function activateTab(name) {
   document.querySelectorAll(".tabbtn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
   tabStrength.classList.toggle("hidden", name !== "strength");
   tabPrehab.classList.toggle("hidden", name !== "prehab");
+  tabMobility.classList.toggle("hidden", name !== "mobility");
   tabTracking.classList.toggle("hidden", name !== "tracking");
-  phaseStrip.classList.toggle("hidden", name === "prehab"); // hide phase strip on prehab
+  // The strength phase strip is only relevant on the Strength tab; Pre-hab and
+  // Mobility render their own headers (Mobility shows its own phase/session strip).
+  phaseStrip.classList.toggle("hidden", name !== "strength");
   try {
     if (name === "strength") await renderStrength(tabStrength, phaseStrip);
     else if (name === "prehab") await renderPrehab(tabPrehab);
+    else if (name === "mobility") await renderMobility(tabMobility);
     else if (name === "tracking") await renderTracking(tabTracking);
   } catch (e) {
     console.error(e);

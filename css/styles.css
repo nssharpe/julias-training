@@ -101,6 +101,19 @@ main { padding: 12px 12px 0; max-width: 720px; margin: 0 auto; }
 .sets .hdr { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
 .sets .idx { color: var(--muted); text-align: center; }
 
+/* Mobility set grid (reps + optional weight + optional measurement). Column
+   count is set inline via grid-template-columns in mobility.js. */
+.msets { display: grid; gap: 8px; align-items: center; }
+.msets .hdr { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.msets .idx { color: var(--muted); text-align: center; }
+
+.card h2 .order { color: var(--accent); font-weight: 700; margin-right: 4px; }
+a.video {
+  display: inline-block; margin-bottom: 10px;
+  color: var(--accent); font-size: 13px; text-decoration: none;
+}
+a.video:active { opacity: 0.7; }
+
 .done-bar {
   position: sticky; bottom: calc(64px + env(safe-area-inset-bottom));
   display: flex; gap: 8px; padding: 8px 0;

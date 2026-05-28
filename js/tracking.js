@@ -1,5 +1,5 @@
 import { loadProgram, locate } from "./program.js";
-import { getState, getRecentSessions, getPrehabRange } from "./db.js";
+import { getState, getRecentSessions, getPrehabRange, getMobilityRange } from "./db.js";
 
 export async function renderTracking(root) {
   // Paint section shells immediately so the tab switch feels instant; each
@@ -11,9 +11,11 @@ export async function renderTracking(root) {
   const phaseSec = section("Phase progress", phaseSection(loc, program));
   const weekSec = section("Compliance — supersets/week", placeholder());
   const prehabSec = section("Pre-hab daily compliance (28d)", placeholder());
+  const mobSec = section("Mobility sessions/week", placeholder());
+  const mobTrendSec = section("Mobility progress (depth / angle)", placeholder());
   const trendSec = section("Strength progress", placeholder());
   const recentSec = section("Recent sessions", placeholder());
-  root.append(phaseSec, weekSec, prehabSec, trendSec, recentSec);
+  root.append(phaseSec, weekSec, prehabSec, mobSec, mobTrendSec, trendSec, recentSec);
 
   // Sessions (one query) feeds three sections.
   getRecentSessions(100).then(sessions => {
@@ -24,6 +26,11 @@ export async function renderTracking(root) {
   // Prehab range (parallel fetch) feeds one.
   getPrehabRange(56).then(range => {
     replaceBody(prehabSec, prehabCompliance(range, program));
+  });
+  // Mobility range feeds the two mobility sections.
+  getMobilityRange(56).then(range => {
+    replaceBody(mobSec, mobilityWeeklyBars(range));
+    replaceBody(mobTrendSec, mobilityTrends(range, program));
   });
 }
 
@@ -88,6 +95,103 @@ function weeklyBars(sessions) {
   outer.appendChild(wrap);
   outer.appendChild(lbl);
   return outer;
+}
+
+function mobilityDayHasData(data) {
+  const entries = data?.entries || {};
+  for (const k of Object.keys(entries)) {
+    for (const s of (entries[k].sets || [])) {
+      if (s?.checked) return true;
+      if (s?.reps != null && s.reps !== "") return true;
+      if (s?.weight != null && s.weight !== "") return true;
+      if (s?.measurement != null && s.measurement !== "") return true;
+    }
+  }
+  return false;
+}
+
+function mobilityWeeklyBars(range) {
+  const weeks = 8;
+  const buckets = Array(weeks).fill(0);
+  const now = new Date();
+  for (const day of range) {
+    if (!mobilityDayHasData(day.data)) continue;
+    const d = new Date(day.date);
+    const w = Math.floor((now - d) / (7 * 86400000));
+    if (w >= 0 && w < weeks) buckets[weeks - 1 - w]++;
+  }
+  const max = Math.max(1, ...buckets);
+  const wrap = document.createElement("div");
+  wrap.className = "bars";
+  buckets.forEach(v => {
+    const b = document.createElement("div");
+    b.className = "bar";
+    b.style.height = `${(v / max) * 100}%`;
+    b.title = `${v} sessions`;
+    wrap.appendChild(b);
+  });
+  const lbl = document.createElement("div");
+  lbl.className = "kv";
+  lbl.innerHTML = `<span>Last 8 weeks · total</span><span class="v">${buckets.reduce((a, b) => a + b, 0)}</span>`;
+  const outer = document.createElement("div");
+  outer.appendChild(wrap);
+  outer.appendChild(lbl);
+  return outer;
+}
+
+function mobilityTrends(range, program) {
+  // Map exercise key -> def (with measurement) across all mobility phases.
+  const exDefs = new Map();
+  for (const phase of (program.mobility?.phases || [])) {
+    for (const ex of phase.exercises) {
+      if (ex.measurement) exDefs.set(ex.key, ex);
+    }
+  }
+  // Gather, per exercise, the best value per session day.
+  const series = new Map();   // numeric measurements -> [values]
+  const latestText = new Map(); // text measurements -> latest string
+  for (const day of range) {
+    const entries = day.data?.entries || {};
+    for (const [key, entry] of Object.entries(entries)) {
+      const def = exDefs.get(key);
+      if (!def) continue;
+      const vals = (entry.sets || []).map(s => s.measurement).filter(v => v != null && v !== "");
+      if (!vals.length) continue;
+      if (def.measurement.type === "number") {
+        const best = Math.max(...vals.map(Number).filter(n => !Number.isNaN(n)));
+        if (!Number.isNaN(best)) {
+          if (!series.has(key)) series.set(key, []);
+          series.get(key).push(best);
+        }
+      } else {
+        latestText.set(key, String(vals[vals.length - 1]));
+      }
+    }
+  }
+  const wrap = document.createElement("div");
+  if (series.size === 0 && latestText.size === 0) {
+    wrap.innerHTML = `<div class="kv"><span>—</span><span class="v">No mobility data yet</span></div>`;
+    return wrap;
+  }
+  for (const [key, values] of series) {
+    const def = exDefs.get(key);
+    const row = document.createElement("div");
+    row.style.margin = "8px 0";
+    const last = values[values.length - 1], first = values[0];
+    const delta = last - first;
+    row.innerHTML = `<div class="kv"><span>${esc(def.name)}</span>
+      <span class="v">${last}${esc(def.measurement.label.includes("°") ? "°" : "")} (${delta >= 0 ? "+" : ""}${delta})</span></div>`;
+    row.appendChild(sparkline(values));
+    wrap.appendChild(row);
+  }
+  for (const [key, text] of latestText) {
+    const def = exDefs.get(key);
+    const row = document.createElement("div");
+    row.className = "kv";
+    row.innerHTML = `<span>${esc(def.name)} · latest ${esc(def.measurement.label.toLowerCase())}</span><span class="v">${esc(text)}</span>`;
+    wrap.appendChild(row);
+  }
+  return wrap;
 }
 
 function prehabCompliance(range, program) {

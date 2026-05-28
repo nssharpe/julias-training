@@ -22,8 +22,8 @@ export function initDb(app, userUid) {
 // ─── In-memory cache (per page session) ─────────────────────────────────────
 // Survives tab switches within a single page load. Firestore's persistent cache
 // handles cross-load speed; this avoids even re-deserializing on each tab switch.
-const memo = { state: null, sessions: null, prehabRange: null };
-export function invalidateCache(keys = ["state", "sessions", "prehabRange"]) {
+const memo = { state: null, sessions: null, prehabRange: null, mobilityRange: null };
+export function invalidateCache(keys = ["state", "sessions", "prehabRange", "mobilityRange"]) {
   for (const k of keys) memo[k] = null;
 }
 
@@ -117,6 +117,42 @@ export async function getPrehabRange(daysBack = 60) {
     data: snaps[i].exists() ? snaps[i].data() : { items: {} },
   })).reverse();
   memo.prehabRange = out;
+  return out;
+}
+
+// ─── Mobility (MFTK) ────────────────────────────────────────────────────────
+// One doc per day: users/{uid}/mobility/{YYYY-MM-DD} = { phaseId, entries }.
+// entries: { [exerciseKey]: { sets: [{ checked } | { reps, weight, measurement }] } }
+export async function getMobilityDay(dateKey) {
+  const snap = await getDoc(userDoc("mobility", dateKey));
+  return snap.exists() ? snap.data() : { entries: {} };
+}
+
+export async function setMobilityDay(dateKey, data) {
+  await setDoc(userDoc("mobility", dateKey), data, { merge: true });
+  if (memo.mobilityRange) {
+    const hit = memo.mobilityRange.find(r => r.date === dateKey);
+    if (hit) hit.data = { ...hit.data, ...data, entries: { ...(hit.data.entries || {}), ...(data.entries || {}) } };
+    else memo.mobilityRange.push({ date: dateKey, data });
+  }
+}
+
+export async function getMobilityRange(daysBack = 120) {
+  if (memo.mobilityRange && memo.mobilityRange.length >= daysBack) {
+    return memo.mobilityRange.slice(-daysBack);
+  }
+  const today = new Date();
+  const days = Array.from({ length: daysBack }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    return isoDay(d);
+  });
+  const snaps = await Promise.all(days.map(key => getDoc(userDoc("mobility", key))));
+  const out = days.map((key, i) => ({
+    date: key,
+    data: snaps[i].exists() ? snaps[i].data() : { entries: {} },
+  })).reverse();
+  memo.mobilityRange = out;
   return out;
 }
 
