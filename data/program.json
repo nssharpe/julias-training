@@ -186,7 +186,9 @@
   "prehab": {
     "daily": [
       { "id": "supine-er-dowel", "name": "Supine shoulder ER with dowel", "sets": 3, "reps": "5 holds", "load": "dowel", "rest": "30s", "tempo": "5s hold + relax" },
-      { "id": "childs-pose-thread", "name": "Child's pose with thread the needle", "sets": 3, "reps": "30s/side", "load": "bw", "rest": "—", "tempo": "slow" }
+      { "id": "childs-pose-thread", "name": "Child's pose with thread the needle", "sets": 3, "reps": "30s/side", "load": "bw", "rest": "—", "tempo": "slow" },
+      { "id": "incline-heel-raise", "name": "Incline heel raises", "sets": 2, "reps": "15", "load": "bw", "rest": "—", "tempo": "2121" },
+      { "id": "ankle-df-eversion-curled", "name": "Ankle dorsiflexion + eversion (curled toes)", "sets": 2, "reps": "15", "load": "bw", "rest": "—", "tempo": "1111" }
     ],
     "alternating": [
       { "id": "quad-ytm", "name": "Quadruped unilateral Y/T/M (front-lever bias)", "sets": 3, "reps": "15 each / side", "load": "5 lb", "rest": "45s", "tempo": "2-1-2" },
