@@ -195,11 +195,13 @@ function mobilityTrends(range, program) {
 }
 
 function prehabCompliance(range, program) {
-  const dailyIds = program.prehab.daily.map(d => d.id);
   const last28 = range.slice(-28);
   let scheduledSets = 0, doneSets = 0;
   for (const day of last28) {
     for (const def of program.prehab.daily) {
+      // Only count an item as "scheduled" on days on/after it was added, so newly
+      // added exercises don't retroactively lower historical compliance.
+      if (def.since && def.since > day.date) continue;
       scheduledSets += def.sets;
       const sets = day.data.items?.[def.id] || [];
       doneSets += sets.slice(0, def.sets).filter(Boolean).length;

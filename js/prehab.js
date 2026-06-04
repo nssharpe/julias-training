@@ -17,6 +17,10 @@ export async function renderPrehab(root) {
     ...program.prehab.daily.map(x => ({ ...x, group: "daily" })),
     ...(showAlt ? program.prehab.alternating.map(x => ({ ...x, group: "alt" })) : []),
   ];
+  // Group by body region (shoulders first, then ankles); stable sort preserves
+  // original order within each region. Untagged items fall in between.
+  const regionRank = { shoulder: 0, ankle: 2 };
+  todays.sort((a, b) => (regionRank[a.region] ?? 1) - (regionRank[b.region] ?? 1));
 
   root.innerHTML = "";
   const head = document.createElement("div");
@@ -56,16 +60,20 @@ export async function renderPrehab(root) {
 }
 
 async function computeStreak(program) {
-  const dailyIds = program.prehab.daily.map(d => d.id);
-  if (dailyIds.length === 0) return 0;
+  const daily = program.prehab.daily;
+  if (daily.length === 0) return 0;
   const range = await getPrehabRange(60);
-  // Walk from today backwards; count consecutive days where every daily item is fully checked.
+  // Walk from today backwards; count consecutive days where every daily item that
+  // was *active on that date* is fully checked. An item's `since` date (if present)
+  // means it isn't required before then — so adding new daily exercises never
+  // breaks the historical streak.
   let streak = 0;
   for (let i = range.length - 1; i >= 0; i--) {
+    const dayDate = range[i].date; // "YYYY-MM-DD"
     const items = range[i].data.items || {};
-    const allDone = dailyIds.every(id => {
-      const sets = items[id];
-      const def = program.prehab.daily.find(x => x.id === id);
+    const required = daily.filter(def => !def.since || def.since <= dayDate);
+    const allDone = required.every(def => {
+      const sets = items[def.id];
       return sets && sets.length >= def.sets && sets.slice(0, def.sets).every(Boolean);
     });
     if (allDone) streak++;
