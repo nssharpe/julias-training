@@ -70,6 +70,15 @@ main { padding: 12px 12px 0; max-width: 720px; margin: 0 auto; }
 }
 .phase-strip .phase-name { color: var(--text); font-weight: 600; }
 
+/* Sub-tab switcher inside the Mobility tab (Pike / Shoulder). */
+.subtab { display: flex; gap: 8px; margin-bottom: 8px; }
+.subtabbtn {
+  flex: 1; background: var(--surface); border: 1px solid transparent;
+  border-radius: var(--radius); padding: 8px 12px;
+  color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.subtabbtn.active { color: var(--accent); border-color: var(--accent); }
+
 .ss-nav {
   display: flex; align-items: center; justify-content: space-between;
   gap: 8px; margin: 8px 0 12px;
@@ -90,6 +99,7 @@ main { padding: 12px 12px 0; max-width: 720px; margin: 0 auto; }
 }
 .card h2 { font-size: 18px; margin: 0 0 4px; }
 .card .meta { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+.card .note { color: var(--muted); font-size: 13px; font-style: italic; margin: -4px 0 10px; }
 .card .last { color: var(--muted); font-size: 13px; margin-bottom: 10px; word-break: break-word; }
 
 .sets {

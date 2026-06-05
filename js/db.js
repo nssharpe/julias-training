@@ -22,8 +22,8 @@ export function initDb(app, userUid) {
 // ─── In-memory cache (per page session) ─────────────────────────────────────
 // Survives tab switches within a single page load. Firestore's persistent cache
 // handles cross-load speed; this avoids even re-deserializing on each tab switch.
-const memo = { state: null, sessions: null, prehabRange: null, mobilityRange: null };
-export function invalidateCache(keys = ["state", "sessions", "prehabRange", "mobilityRange"]) {
+const memo = { state: null, sessions: null, prehabRange: null, mobilityRange: null, shoulderRange: null };
+export function invalidateCache(keys = ["state", "sessions", "prehabRange", "mobilityRange", "shoulderRange"]) {
   for (const k of keys) memo[k] = null;
 }
 
@@ -153,6 +153,43 @@ export async function getMobilityRange(daysBack = 120) {
     data: snaps[i].exists() ? snaps[i].data() : { entries: {} },
   })).reverse();
   memo.mobilityRange = out;
+  return out;
+}
+
+// ─── Shoulder Flexion ───────────────────────────────────────────────────────
+// Separate from the Pike mobility rotation: one doc per logged session day at
+// users/{uid}/shoulder/{YYYY-MM-DD} = { entries }. Kept apart so a shoulder
+// session never collides with the Pike mobility day doc (which carries phaseId).
+export async function getShoulderDay(dateKey) {
+  const snap = await getDoc(userDoc("shoulder", dateKey));
+  return snap.exists() ? snap.data() : { entries: {} };
+}
+
+export async function setShoulderDay(dateKey, data) {
+  await setDoc(userDoc("shoulder", dateKey), data, { merge: true });
+  if (memo.shoulderRange) {
+    const hit = memo.shoulderRange.find(r => r.date === dateKey);
+    if (hit) hit.data = { ...hit.data, ...data, entries: { ...(hit.data.entries || {}), ...(data.entries || {}) } };
+    else memo.shoulderRange.push({ date: dateKey, data });
+  }
+}
+
+export async function getShoulderRange(daysBack = 56) {
+  if (memo.shoulderRange && memo.shoulderRange.length >= daysBack) {
+    return memo.shoulderRange.slice(-daysBack);
+  }
+  const today = new Date();
+  const days = Array.from({ length: daysBack }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    return isoDay(d);
+  });
+  const snaps = await Promise.all(days.map(key => getDoc(userDoc("shoulder", key))));
+  const out = days.map((key, i) => ({
+    date: key,
+    data: snaps[i].exists() ? snaps[i].data() : { entries: {} },
+  })).reverse();
+  memo.shoulderRange = out;
   return out;
 }
 

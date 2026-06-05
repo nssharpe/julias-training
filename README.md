@@ -73,4 +73,6 @@ Phases are defined in `program.json` with a `weeks` count. The app advances auto
 users/{uid}/meta/state                 { queueIndex, programStartISO }
 users/{uid}/sessions/{auto}            { supersetId, dateISO, exercises: [{ id, name, sets: [{reps, load}] }] }
 users/{uid}/prehab/{YYYY-MM-DD}        { items: { [exerciseId]: [bool per set] } }
+users/{uid}/mobility/{YYYY-MM-DD}      { phaseId, entries: { [exerciseKey]: { sets } } }   // Pike (auto-advancing)
+users/{uid}/shoulder/{YYYY-MM-DD}      { entries: { [exerciseKey]: { sets } } }            // Shoulder Flexion (per-session)
 ```

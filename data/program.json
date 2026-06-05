@@ -233,5 +233,18 @@
         ]
       }
     ]
+  },
+  "shoulder": {
+    "name": "Shoulder Flexion",
+    "cadence": "1–2×/week",
+    "exercises": [
+      { "key": "sf-a1-banded-ext-rotation", "order": "A1", "name": "Banded Stretching — External Rotation", "inputType": "check", "prescription": { "reps": "6 + 8s iso", "tempo": "5s contract / 5s relax", "sets": "2–3", "rest": "30s" }, "defaultSets": 3, "note": "On the last rep, remove the band and externally rotate without assistance for the 8s isometric hold.", "videoUrl": "https://www.youtube.com/watch?v=ITCc-DSpgLs" },
+      { "key": "sf-a2-prone-db-ext-rotation", "order": "A2", "name": "Prone Dumbbell External Rotation", "inputType": "repsWeightMeasurement", "prescription": { "reps": "5–8", "tempo": "3112", "sets": "2–3", "rest": "60s" }, "defaultSets": 3, "note": "Support elbow on an object level with your shoulder. Torso parallel to the ground.", "videoUrl": "https://www.youtube.com/watch?v=uv0K-rzAMTI&feature=youtu.be" },
+      { "key": "sf-b1-pillar-lat-stretch", "order": "B1", "name": "Pillar Lat Stretch", "inputType": "check", "prescription": { "reps": "8", "tempo": "3s contract / 3s relax", "sets": "2–3", "rest": "30s" }, "defaultSets": 3, "note": "Palm toward your grip. Create a long arc along your spine. Push with the bottom hand. Posteriorly tilt the pelvis.", "videoUrl": "https://www.youtube.com/watch?v=Bqge_oSmHE8&feature=youtu.be" },
+      { "key": "sf-b2-horiz-db-lower-trap-raise", "order": "B2", "name": "Horizontal Dumbbell Lower Trap Raise", "inputType": "repsWeightMeasurement", "prescription": { "reps": "5–8", "tempo": "3112", "sets": "2–3", "rest": "60s" }, "defaultSets": 3, "note": "Arm comes out at a 30–45° angle to the body. Torso parallel to the ground.", "videoUrl": "https://www.youtube.com/watch?v=WTIbJn_8lVI&feature=youtu.be" },
+      { "key": "sf-c1-loaded-pec-stretch", "order": "C1", "name": "Loaded Pec Stretch", "inputType": "repsWeightMeasurement", "prescription": { "reps": "8", "tempo": "3210", "sets": "2–3", "rest": "30s" }, "defaultSets": 3, "note": "Thumb points down. Hand slightly above ear height.", "videoUrl": "https://www.youtube.com/watch?v=CIzKsfsjoyY&feature=youtu.be" },
+      { "key": "sf-c2-prone-db-powell-raise", "order": "C2", "name": "Prone Dumbbell Powell Raise", "inputType": "repsWeightMeasurement", "prescription": { "reps": "5–8", "tempo": "3112", "sets": "2–3", "rest": "60s" }, "defaultSets": 3, "note": "Lay face down on a box or bench. Hand inline with your ear at the bottom.", "videoUrl": "https://www.youtube.com/watch?v=dCcEtA32-ko" },
+      { "key": "sf-d1-hanging-variation", "order": "D1", "name": "Your Hanging Variation", "inputType": "timeNotes", "prescription": { "reps": "30–90s", "tempo": "—", "sets": "2", "rest": "120s" }, "defaultSets": 2, "note": "Use the Mobility & Flexibility Toolkit to find your hanging variation." }
+    ]
   }
 }

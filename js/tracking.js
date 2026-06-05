@@ -1,5 +1,5 @@
 import { loadProgram, locate } from "./program.js";
-import { getState, getRecentSessions, getPrehabRange, getMobilityRange } from "./db.js";
+import { getState, getRecentSessions, getPrehabRange, getMobilityRange, getShoulderRange } from "./db.js";
 
 export async function renderTracking(root) {
   // Paint section shells immediately so the tab switch feels instant; each
@@ -13,9 +13,10 @@ export async function renderTracking(root) {
   const prehabSec = section("Pre-hab daily compliance (28d)", placeholder());
   const mobSec = section("Mobility sessions/week", placeholder());
   const mobTrendSec = section("Mobility progress (depth / angle)", placeholder());
+  const shoulderSec = section("Shoulder sessions/week", placeholder());
   const trendSec = section("Strength progress", placeholder());
   const recentSec = section("Recent sessions", placeholder());
-  root.append(phaseSec, weekSec, prehabSec, mobSec, mobTrendSec, trendSec, recentSec);
+  root.append(phaseSec, weekSec, prehabSec, mobSec, mobTrendSec, shoulderSec, trendSec, recentSec);
 
   // Sessions (one query) feeds three sections.
   getRecentSessions(100).then(sessions => {
@@ -31,6 +32,10 @@ export async function renderTracking(root) {
   getMobilityRange(56).then(range => {
     replaceBody(mobSec, mobilityWeeklyBars(range));
     replaceBody(mobTrendSec, mobilityTrends(range, program));
+  });
+  // Shoulder range feeds its own sessions/week section.
+  getShoulderRange(56).then(range => {
+    replaceBody(shoulderSec, weeklySessionBars(range, "sessions"));
   });
 }
 
@@ -111,6 +116,12 @@ function mobilityDayHasData(data) {
 }
 
 function mobilityWeeklyBars(range) {
+  return weeklySessionBars(range, "sessions");
+}
+
+// Generic 8-week sessions/week bar chart over a range of { date, data:{entries} }
+// day records. A day counts if it has any logged data (mobilityDayHasData).
+function weeklySessionBars(range, unit) {
   const weeks = 8;
   const buckets = Array(weeks).fill(0);
   const now = new Date();
@@ -127,7 +138,7 @@ function mobilityWeeklyBars(range) {
     const b = document.createElement("div");
     b.className = "bar";
     b.style.height = `${(v / max) * 100}%`;
-    b.title = `${v} sessions`;
+    b.title = `${v} ${unit}`;
     wrap.appendChild(b);
   });
   const lbl = document.createElement("div");
