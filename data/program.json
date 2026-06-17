@@ -186,15 +186,18 @@
   "prehab": {
     "daily": [
       { "id": "supine-er-dowel", "name": "Supine shoulder ER with dowel", "region": "shoulder", "sets": 3, "reps": "5 holds", "load": "dowel", "rest": "30s", "tempo": "5s hold + relax" },
-      { "id": "childs-pose-thread", "name": "Child's pose with thread the needle", "region": "shoulder", "sets": 3, "reps": "30s/side", "load": "bw", "rest": "—", "tempo": "slow" },
-      { "id": "incline-heel-raise", "name": "Incline heel raises", "region": "ankle", "since": "2026-06-03", "sets": 2, "reps": "15", "load": "bw", "rest": "—", "tempo": "2121" },
-      { "id": "ankle-df-eversion-curled", "name": "Ankle dorsiflexion + eversion (curled toes)", "region": "ankle", "since": "2026-06-03", "sets": 2, "reps": "15", "load": "bw", "rest": "—", "tempo": "1111" }
+      { "id": "childs-pose-thread", "name": "Child's pose with thread the needle", "region": "shoulder", "sets": 3, "reps": "30s/side", "load": "bw", "rest": "—", "tempo": "slow" }
     ],
     "alternating": [
       { "id": "quad-ytm", "name": "Quadruped unilateral Y/T/M (front-lever bias)", "region": "shoulder", "sets": 3, "reps": "15 each / side", "load": "5 lb", "rest": "45s", "tempo": "2-1-2" },
       { "id": "sl-er-dumbbell", "name": "Side-lying shoulder ER (towel + DB)", "region": "shoulder", "sets": 3, "reps": "10/side", "load": "5 lb", "rest": "45s", "tempo": "2-1-2" },
       { "id": "sl-shoulder-flexion", "name": "Side-lying shoulder flexion", "region": "shoulder", "sets": 3, "reps": "12/side", "load": "5 lb", "rest": "45s", "tempo": "2-1-2" },
-      { "id": "sa-punch-band", "name": "Single-arm punch with resistance", "region": "shoulder", "sets": 3, "reps": "10/side", "load": "band", "rest": "45s", "tempo": "1-0-1" }
+      { "id": "sa-punch-band", "name": "Single-arm punch with resistance", "region": "shoulder", "sets": 3, "reps": "10/side", "load": "band", "rest": "45s", "tempo": "1-0-1" },
+      { "id": "elbow-plank-scap-protraction", "name": "Elbow plank scap protraction", "region": "shoulder", "since": "2026-06-17", "sets": 3, "reps": "10", "load": "bw", "rest": "45s", "tempo": "6s neg" },
+      { "id": "incline-heel-raise", "name": "Incline heel raises", "region": "ankle", "since": "2026-06-03", "sets": 3, "reps": "10", "load": "bw", "rest": "—", "tempo": "1060" },
+      { "id": "ankle-df-eversion-curled", "name": "Ankle dorsiflexion + eversion (curled toes)", "region": "ankle", "since": "2026-06-03", "sets": 2, "reps": "15", "load": "bw", "rest": "—", "tempo": "1111" },
+      { "id": "great-toe-flexion-resistance", "name": "Great toe flexion with resistance", "region": "ankle", "since": "2026-06-17", "sets": 3, "reps": "6", "load": "band", "rest": "—", "tempo": "1060" },
+      { "id": "sl-eccentric-squat-uneven", "name": "Single leg eccentric squat on uneven surface", "region": "ankle", "since": "2026-06-17", "sets": 2, "reps": "10", "load": "bw", "rest": "60s", "tempo": "1060" }
     ]
   },
   "mobility": {
