@@ -144,9 +144,28 @@ a.video:active { opacity: 0.7; }
 }
 .tabbtn.active { color: var(--accent); }
 
+.prehab-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+.prehab-bar button { flex: 1; font-size: 14px; min-height: 40px; padding: 8px 12px; }
+.prehab-bar button.on { border-color: var(--accent); color: var(--accent); }
+
 .prehab-item {
   background: var(--surface); border-radius: var(--radius);
   padding: 12px 14px; margin-bottom: 10px;
+  /* Long-press starts a drag, so suppress iOS text selection + callout menu. */
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.prehab-item.dragging {
+  position: relative; z-index: 5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  outline: 1px solid var(--accent);
+  opacity: 0.95;
+}
+body.dragging-active { cursor: grabbing; }
+.prehab-head { display: flex; align-items: flex-start; gap: 8px; }
+.prehab-head h3 { flex: 1; }
+.edit-btn {
+  flex: 0 0 auto; min-height: 32px; padding: 4px 12px;
+  font-size: 13px; border-radius: 10px; color: var(--muted);
 }
 .prehab-item h3 { margin: 0 0 4px; font-size: 16px; }
 .prehab-item .meta { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
@@ -174,6 +193,37 @@ a.video:active { opacity: 0.7; }
 .bars .lbl { font-size: 10px; color: var(--muted); text-align: center; }
 
 .spark { width: 100%; height: 40px; display: block; }
+
+/* Add / edit exercise sheet (slides up from the bottom on mobile). */
+.sheet-overlay {
+  position: fixed; inset: 0; z-index: 30;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.sheet {
+  width: 100%; max-width: 720px;
+  max-height: 92vh; overflow-y: auto;
+  background: var(--surface); color: var(--text);
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+}
+.sheet h2 { margin: 0 0 12px; font-size: 18px; }
+.sheet .field { display: block; margin-bottom: 12px; }
+.sheet .field > span {
+  display: block; margin-bottom: 4px;
+  font-size: 13px; color: var(--text); opacity: 0.85;
+}
+/* Darker than the sheet so the inputs read as inputs. */
+.sheet input, .sheet select {
+  font: inherit; color: var(--text); background: var(--bg);
+  border: 1px solid var(--surface-2); border-radius: 10px;
+  padding: 10px 12px; width: 100%; min-height: var(--tap);
+}
+.sheet select option { background: var(--surface-2); color: var(--text); }
+.sheet-actions { display: flex; gap: 8px; margin-top: 16px; }
+.sheet-actions button { flex: 1; }
+/* Dark text on the light red fill — light-on-light is unreadable here. */
+.sheet-actions button.danger { background: var(--danger); color: #3a0a0a; font-weight: 600; }
 
 .toast {
   position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);

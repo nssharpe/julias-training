@@ -1,5 +1,6 @@
 import { loadProgram, locate } from "./program.js";
-import { getState, getRecentSessions, getPrehabRange, getMobilityRange, getShoulderRange } from "./db.js";
+import { getState, getRecentSessions, getPrehabRange, getMobilityRange, getShoulderRange, getPrehabConfig } from "./db.js";
+import { buildPrehabItems, dailyItemsOn } from "./prehab-config.js";
 
 export async function renderTracking(root) {
   // Paint section shells immediately so the tab switch feels instant; each
@@ -24,9 +25,10 @@ export async function renderTracking(root) {
     replaceBody(trendSec, exerciseTrends(sessions, program));
     replaceBody(recentSec, recentList(sessions));
   });
-  // Prehab range (parallel fetch) feeds one.
-  getPrehabRange(56).then(range => {
-    replaceBody(prehabSec, prehabCompliance(range, program));
+  // Prehab range (parallel fetch) feeds one. Pair it with the user's item config
+  // so edits/additions/deletions in the Pre-hab tab are reflected here too.
+  Promise.all([getPrehabRange(56), getPrehabConfig()]).then(([range, config]) => {
+    replaceBody(prehabSec, prehabCompliance(range, buildPrehabItems(program, config)));
   });
   // Mobility range feeds the two mobility sections.
   getMobilityRange(56).then(range => {
@@ -205,17 +207,19 @@ function mobilityTrends(range, program) {
   return wrap;
 }
 
-function prehabCompliance(range, program) {
+function prehabCompliance(range, allItems) {
   const last28 = range.slice(-28);
   let scheduledSets = 0, doneSets = 0;
   for (const day of last28) {
-    for (const def of program.prehab.daily) {
-      // Only count an item as "scheduled" on days on/after it was added, so newly
-      // added exercises don't retroactively lower historical compliance.
-      if (def.since && def.since > day.date) continue;
-      scheduledSets += def.sets;
+    // dailyItemsOn() applies each item's since/until window, so newly added or
+    // since-deleted exercises never retroactively move historical compliance.
+    for (const def of dailyItemsOn(allItems, day.date)) {
       const sets = day.data.items?.[def.id] || [];
-      doneSets += sets.slice(0, def.sets).filter(Boolean).length;
+      // A saved array has the set count that was required the day it was made;
+      // fall back to the current count for days with no record.
+      const scheduled = sets.length || def.sets;
+      scheduledSets += scheduled;
+      doneSets += sets.slice(0, scheduled).filter(Boolean).length;
     }
   }
   const pct = scheduledSets ? Math.round((doneSets / scheduledSets) * 100) : 0;

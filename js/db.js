@@ -22,8 +22,8 @@ export function initDb(app, userUid) {
 // ─── In-memory cache (per page session) ─────────────────────────────────────
 // Survives tab switches within a single page load. Firestore's persistent cache
 // handles cross-load speed; this avoids even re-deserializing on each tab switch.
-const memo = { state: null, sessions: null, prehabRange: null, mobilityRange: null, shoulderRange: null };
-export function invalidateCache(keys = ["state", "sessions", "prehabRange", "mobilityRange", "shoulderRange"]) {
+const memo = { state: null, sessions: null, prehabRange: null, mobilityRange: null, shoulderRange: null, prehabConfig: null };
+export function invalidateCache(keys = ["state", "sessions", "prehabRange", "mobilityRange", "shoulderRange", "prehabConfig"]) {
   for (const k of keys) memo[k] = null;
 }
 
@@ -81,6 +81,21 @@ export async function getHistoryForExercise(exerciseId, n = 5) {
 
 export async function getRecentSessions(n = 100) {
   return loadRecentSessions(n);
+}
+
+// ─── Pre-hab item config (user edits / additions / order) ───────────────────
+// Lives beside meta/state so the existing Firestore rules cover it. Small enough
+// that we always write the whole doc — no partial-merge subtleties.
+export async function getPrehabConfig() {
+  if (memo.prehabConfig) return memo.prehabConfig;
+  const snap = await getDoc(userDoc("meta", "prehabConfig"));
+  memo.prehabConfig = snap.exists() ? snap.data() : { items: {}, order: [] };
+  return memo.prehabConfig;
+}
+
+export async function savePrehabConfig(config) {
+  memo.prehabConfig = config;
+  await setDoc(userDoc("meta", "prehabConfig"), config);
 }
 
 export async function getPrehabDay(dateKey) {

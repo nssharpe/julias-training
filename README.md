@@ -37,6 +37,8 @@ Mobile-first strength + pre-hab tracker. Static site (GitHub Pages) backed by Fi
 
 `data/program.json` defines phases, supersets, and pre-hab items. Edit + `git push` to deploy a new program.
 
+Pre-hab items can also be edited in the app itself (Edit on a card, `+ Add` at the top, long-press to reorder). Those changes live in Firestore at `users/{uid}/meta/prehabConfig` and are layered on top of `program.json` — so a program push still updates anything the user hasn't overridden. Deletion is soft (`until` date) and additions carry a `since` date, so the streak and compliance history never shift retroactively.
+
 ## Local development
 
 ```
@@ -71,6 +73,7 @@ Phases are defined in `program.json` with a `weeks` count. The app advances auto
 
 ```
 users/{uid}/meta/state                 { queueIndex, programStartISO }
+users/{uid}/meta/prehabConfig          { items: { [id]: {name,sets,reps,load,rest,tempo,group,since,until,custom} }, order: [id] }
 users/{uid}/sessions/{auto}            { supersetId, dateISO, exercises: [{ id, name, sets: [{reps, load}] }] }
 users/{uid}/prehab/{YYYY-MM-DD}        { items: { [exerciseId]: [bool per set] } }
 users/{uid}/mobility/{YYYY-MM-DD}      { phaseId, entries: { [exerciseKey]: { sets } } }   // Pike (auto-advancing)
