@@ -22,8 +22,8 @@ export function initDb(app, userUid) {
 // ─── In-memory cache (per page session) ─────────────────────────────────────
 // Survives tab switches within a single page load. Firestore's persistent cache
 // handles cross-load speed; this avoids even re-deserializing on each tab switch.
-const memo = { state: null, sessions: null, prehabRange: null, mobilityRange: null, shoulderRange: null, prehabConfig: null };
-export function invalidateCache(keys = ["state", "sessions", "prehabRange", "mobilityRange", "shoulderRange", "prehabConfig"]) {
+const memo = { state: null, sessions: null, prehabRange: null, mobilityRange: null, shoulderRange: null, frontSplitRange: null, prehabConfig: null };
+export function invalidateCache(keys = ["state", "sessions", "prehabRange", "mobilityRange", "shoulderRange", "frontSplitRange", "prehabConfig"]) {
   for (const k of keys) memo[k] = null;
 }
 
@@ -205,6 +205,43 @@ export async function getShoulderRange(daysBack = 56) {
     data: snaps[i].exists() ? snaps[i].data() : { entries: {} },
   })).reverse();
   memo.shoulderRange = out;
+  return out;
+}
+
+// ─── Front Split (MFTK) ───────────────────────────────────────────────
+// Its own collection at users/{uid}/frontsplit/{YYYY-MM-DD} = { phaseId, entries }.
+// Kept apart from the Pike mobility docs so the two programs' phase rotations and
+// session counters never collide.
+export async function getFrontSplitDay(dateKey) {
+  const snap = await getDoc(userDoc("frontsplit", dateKey));
+  return snap.exists() ? snap.data() : { entries: {} };
+}
+
+export async function setFrontSplitDay(dateKey, data) {
+  await setDoc(userDoc("frontsplit", dateKey), data, { merge: true });
+  if (memo.frontSplitRange) {
+    const hit = memo.frontSplitRange.find(r => r.date === dateKey);
+    if (hit) hit.data = { ...hit.data, ...data, entries: { ...(hit.data.entries || {}), ...(data.entries || {}) } };
+    else memo.frontSplitRange.push({ date: dateKey, data });
+  }
+}
+
+export async function getFrontSplitRange(daysBack = 56) {
+  if (memo.frontSplitRange && memo.frontSplitRange.length >= daysBack) {
+    return memo.frontSplitRange.slice(-daysBack);
+  }
+  const today = new Date();
+  const days = Array.from({ length: daysBack }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    return isoDay(d);
+  });
+  const snaps = await Promise.all(days.map(key => getDoc(userDoc("frontsplit", key))));
+  const out = days.map((key, i) => ({
+    date: key,
+    data: snaps[i].exists() ? snaps[i].data() : { entries: {} },
+  })).reverse();
+  memo.frontSplitRange = out;
   return out;
 }
 

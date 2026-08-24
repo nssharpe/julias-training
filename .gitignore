@@ -1,0 +1,9 @@
+# Local tooling / scratch — never part of the deployed site.
+.claude/
+harness*.html
+dev-stub-*.js
+
+# Source PDFs stay local. This repo is public via GitHub Pages, and the MFTK
+# programs are marked "not for distribution" — the prescriptions live in
+# data/program.json for the app, but the documents themselves don't ship.
+*.pdf

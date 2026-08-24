@@ -248,5 +248,36 @@
       { "key": "sf-c2-prone-db-powell-raise", "order": "C2", "name": "Prone Dumbbell Powell Raise", "inputType": "repsWeightMeasurement", "prescription": { "reps": "5–8", "tempo": "3112", "sets": "2–3", "rest": "60s" }, "defaultSets": 3, "note": "Lay face down on a box or bench. Hand inline with your ear at the bottom.", "videoUrl": "https://www.youtube.com/watch?v=dCcEtA32-ko" },
       { "key": "sf-d1-hanging-variation", "order": "D1", "name": "Your Hanging Variation", "inputType": "timeNotes", "prescription": { "reps": "30–90s", "tempo": "—", "sets": "2", "rest": "120s" }, "defaultSets": 2, "note": "Use the Mobility & Flexibility Toolkit to find your hanging variation." }
     ]
+  },
+  "frontSplit": {
+    "name": "Front Split",
+    "cadence": "1–2×/week",
+    "sessionsPerPhase": 8,
+    "holdLastPhase": true,
+    "source": "MFTK Front Split Program 221 V3",
+    "phases": [
+      {
+        "id": "fs-p1",
+        "name": "Front Split Phase 1",
+        "equipment": "A bench or box. Blocks or supports.",
+        "exercises": [
+          { "key": "fs-p1-seated-pike-lift-sl", "order": "A1", "name": "Seated Pike Lift — Single Leg", "inputType": "repsWeightMeasurement", "prescription": { "reps": "8", "tempo": "1114", "sets": "2–3", "rest": "60s+" }, "defaultSets": 3, "measurement": { "type": "text", "label": "Depth" }, "note": "Place your hands forwards at a distance where your leg only lifts a few cm. Push into the floor with your hands." },
+          { "key": "fs-p1-couch-stretch-hips-high", "order": "B1", "name": "Couch Stretch — Hips High Hold", "inputType": "repsWeightMeasurement", "prescription": { "reps": "30s", "tempo": "—", "sets": "2–3", "rest": "60s+" }, "defaultSets": 3, "note": "Lean back and posteriorly (backwards) tilt the pelvis." },
+          { "key": "fs-p1-front-split-slides", "order": "C1", "name": "Front Split Slides — Back Leg Bent", "inputType": "repsWeightMeasurement", "prescription": { "reps": "30", "tempo": "60 bpm", "sets": "2–3", "rest": "90s+" }, "defaultSets": 3, "measurement": { "type": "text", "label": "Depth" }, "note": "Tempo = 1s in the stretch, 1s release. In 60s you would have 30 touches to your marker." },
+          { "key": "fs-p1-kneeling-needle", "order": "C2", "name": "Kneeling Needle", "inputType": "repsWeightMeasurement", "prescription": { "reps": "8", "tempo": "1114", "sets": "2–3", "rest": "90s+" }, "defaultSets": 3, "note": "Contract the glutes hard." }
+        ]
+      },
+      {
+        "id": "fs-p2",
+        "name": "Front Split Phase 2",
+        "equipment": "A bench or box. Dumbbells or weights. Blocks or supports.",
+        "exercises": [
+          { "key": "fs-p2-leg-elevated-pike-lift", "order": "A1", "name": "Leg Elevated Pike Lift", "inputType": "repsWeightMeasurement", "prescription": { "reps": "6", "tempo": "5s contract / 5s relax / 5s antagonist", "sets": "2–3", "rest": "60s+" }, "defaultSets": 3, "measurement": { "type": "text", "label": "Depth" }, "note": "1 rep = push heel down 5s, relax 5s, lift leg off box 5s, repeat. Find a height where the leg can only lift 2–5cm without either of your knees bending." },
+          { "key": "fs-p2-hips-high-low-couch", "order": "B1", "name": "Hips High to Hips Low Couch Stretch", "inputType": "repsWeightMeasurement", "prescription": { "reps": "8", "tempo": "2310", "sets": "2–3", "rest": "60s+" }, "defaultSets": 3, "note": "Keep torso upright or slightly back. You can elevate the back knee if you feel a stretch in the front leg getting in the way." },
+          { "key": "fs-p2-passive-front-split", "order": "C1", "name": "Passive Front Split — Hands Supporting", "inputType": "repsWeightMeasurement", "prescription": { "reps": "30s+", "tempo": "—", "sets": "2–3", "rest": "90s+" }, "defaultSets": 3, "measurement": { "type": "text", "label": "Depth" }, "note": "Use your hands and blocks to support the position. Get yourself comfortable in the setup to be able to push the stretch." },
+          { "key": "fs-p2-standing-needle", "order": "C2", "name": "Standing Needle", "inputType": "repsWeightMeasurement", "prescription": { "reps": "8", "tempo": "1114", "sets": "2–3", "rest": "90s+" }, "defaultSets": 3, "note": "Be strict with your position. Fight to hold the position." }
+        ]
+      }
+    ]
   }
 }

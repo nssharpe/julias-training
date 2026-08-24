@@ -70,14 +70,21 @@ main { padding: 12px 12px 0; max-width: 720px; margin: 0 auto; }
 }
 .phase-strip .phase-name { color: var(--text); font-weight: 600; }
 
-/* Sub-tab switcher inside the Mobility tab (Pike / Shoulder). */
+/* Sub-tab switcher inside the Mobility tab (Pike / Shoulder / Front Split). */
 .subtab { display: flex; gap: 8px; margin-bottom: 8px; }
 .subtabbtn {
-  flex: 1; background: var(--surface); border: 1px solid transparent;
-  border-radius: var(--radius); padding: 8px 12px;
+  flex: 1; min-width: 0; background: var(--surface); border: 1px solid transparent;
+  border-radius: var(--radius); padding: 8px 6px;
   color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .subtabbtn.active { color: var(--accent); border-color: var(--accent); }
+
+/* Equipment line under a phase strip (front-split phases list their kit). */
+.equipment {
+  color: var(--muted); font-size: 13px;
+  margin: -4px 0 10px; padding: 0 4px;
+}
 
 .ss-nav {
   display: flex; align-items: center; justify-content: space-between;

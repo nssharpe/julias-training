@@ -1,5 +1,5 @@
 import { loadProgram, locate } from "./program.js";
-import { getState, getRecentSessions, getPrehabRange, getMobilityRange, getShoulderRange, getPrehabConfig } from "./db.js";
+import { getState, getRecentSessions, getPrehabRange, getMobilityRange, getShoulderRange, getFrontSplitRange, getPrehabConfig } from "./db.js";
 import { buildPrehabItems, dailyItemsOn } from "./prehab-config.js";
 
 export async function renderTracking(root) {
@@ -15,9 +15,11 @@ export async function renderTracking(root) {
   const mobSec = section("Mobility sessions/week", placeholder());
   const mobTrendSec = section("Mobility progress (depth / angle)", placeholder());
   const shoulderSec = section("Shoulder sessions/week", placeholder());
+  const fsSec = section("Front split sessions/week", placeholder());
+  const fsTrendSec = section("Front split progress (depth)", placeholder());
   const trendSec = section("Strength progress", placeholder());
   const recentSec = section("Recent sessions", placeholder());
-  root.append(phaseSec, weekSec, prehabSec, mobSec, mobTrendSec, shoulderSec, trendSec, recentSec);
+  root.append(phaseSec, weekSec, prehabSec, mobSec, mobTrendSec, shoulderSec, fsSec, fsTrendSec, trendSec, recentSec);
 
   // Sessions (one query) feeds three sections.
   getRecentSessions(100).then(sessions => {
@@ -38,6 +40,11 @@ export async function renderTracking(root) {
   // Shoulder range feeds its own sessions/week section.
   getShoulderRange(56).then(range => {
     replaceBody(shoulderSec, weeklySessionBars(range, "sessions"));
+  });
+  // Front split range feeds its sessions/week bars and its depth trends.
+  getFrontSplitRange(56).then(range => {
+    replaceBody(fsSec, weeklySessionBars(range, "sessions"));
+    replaceBody(fsTrendSec, measurementTrends(range, program.frontSplit?.phases, "No front split data yet"));
   });
 }
 
@@ -153,9 +160,15 @@ function weeklySessionBars(range, unit) {
 }
 
 function mobilityTrends(range, program) {
-  // Map exercise key -> def (with measurement) across all mobility phases.
+  return measurementTrends(range, program.mobility?.phases, "No mobility data yet");
+}
+
+// Per-exercise measurement trends over a range of day docs. Numeric measurements
+// get a sparkline + delta; text ones show the latest value.
+function measurementTrends(range, phases, emptyMsg) {
+  // Map exercise key -> def (with measurement) across all phases of the program.
   const exDefs = new Map();
-  for (const phase of (program.mobility?.phases || [])) {
+  for (const phase of (phases || [])) {
     for (const ex of phase.exercises) {
       if (ex.measurement) exDefs.set(ex.key, ex);
     }
@@ -183,7 +196,7 @@ function mobilityTrends(range, program) {
   }
   const wrap = document.createElement("div");
   if (series.size === 0 && latestText.size === 0) {
-    wrap.innerHTML = `<div class="kv"><span>—</span><span class="v">No mobility data yet</span></div>`;
+    wrap.innerHTML = `<div class="kv"><span>—</span><span class="v">${esc(emptyMsg)}</span></div>`;
     return wrap;
   }
   for (const [key, values] of series) {

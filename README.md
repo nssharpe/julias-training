@@ -65,6 +65,22 @@ For each exercise in the next superset, the app reads the last few sessions and 
 
 Edit `js/overload.js` to change behavior — it's pure functions with tests in `js/overload.test.js`.
 
+## Mobility sub-programs
+
+The Mobility tab hosts three programs, each in its own Firestore collection with its own
+session counter in `meta/state`:
+
+| Sub-tab | Source | Rotation |
+| --- | --- | --- |
+| Pike | `program.json` → `mobility` | 3 phases, 8 sessions each, then cycles back to Phase 1 |
+| Shoulder | `program.json` → `shoulder` | none — fixed routine, 1–2×/week |
+| Front Split | `program.json` → `frontSplit` | 2 phases, 8 sessions each, then **holds** on the last phase (`holdLastPhase: true`) |
+
+`holdLastPhase` exists because the MFTK Front Split PDF only contains Phases 1 and 2 —
+Phase 3 is the "specialist" program that lives in the Toolkit itself. Without it the app
+would silently drop back to Phase 1 after 16 sessions. Add a third phase to
+`frontSplit.phases` when you have it.
+
 ## Metacycling
 
 Phases are defined in `program.json` with a `weeks` count. The app advances automatically based on `programStartISO` (set in Firestore the first time you sign in). When Phase 1's weeks elapse, the Strength tab starts pulling supersets from Phase 2. After the last phase, the program stays on it indefinitely — edit `programStartISO` in Firestore to restart, or push a new program with extra phases.
@@ -78,4 +94,5 @@ users/{uid}/sessions/{auto}            { supersetId, dateISO, exercises: [{ id, 
 users/{uid}/prehab/{YYYY-MM-DD}        { items: { [exerciseId]: [bool per set] } }
 users/{uid}/mobility/{YYYY-MM-DD}      { phaseId, entries: { [exerciseKey]: { sets } } }   // Pike (auto-advancing)
 users/{uid}/shoulder/{YYYY-MM-DD}      { entries: { [exerciseKey]: { sets } } }            // Shoulder Flexion (per-session)
+users/{uid}/frontsplit/{YYYY-MM-DD}    { phaseId, entries: { [exerciseKey]: { sets } } }   // Front Split (auto-advancing, holds on last phase)
 ```

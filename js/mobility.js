@@ -1,15 +1,18 @@
 import { loadProgram } from "./program.js";
 import {
   getState, setState, getMobilityDay, setMobilityDay, isoDay,
-  getShoulderDay, setShoulderDay,
+  getShoulderDay, setShoulderDay, getFrontSplitDay, setFrontSplitDay,
 } from "./db.js";
 
-// The Mobility tab hosts two sub-programs, switchable via a sub-tab row:
+// The Mobility tab hosts three sub-programs, switchable via a sub-tab row:
 //   • Pike (MFTK) — auto-advances one phase every `sessionsPerPhase` (8) logged
 //     sessions, then cycles back to Phase 1. One doc per day.
 //   • Shoulder Flexion — a fixed routine logged per session (1–2×/week), no
 //     phase rotation. Stored in its own collection so it never collides with a
 //     Pike day doc.
+//   • Front Split (MFTK) — same phase rotation as Pike but with `holdLastPhase`,
+//     so it settles on the final phase instead of cycling back. Its own
+//     collection and its own session counter.
 // Active sub-tab is module-level (resets to Pike on each page load).
 
 let activeGroup = "pike";
@@ -21,7 +24,7 @@ export async function renderMobility(root) {
   // Sub-tab switcher (Pike / Shoulder).
   const switcher = document.createElement("div");
   switcher.className = "subtab";
-  for (const [id, label] of [["pike", "Pike"], ["shoulder", "Shoulder"]]) {
+  for (const [id, label] of [["pike", "Pike"], ["shoulder", "Shoulder"], ["frontsplit", "Front Split"]]) {
     const b = document.createElement("button");
     b.className = "subtabbtn" + (activeGroup === id ? " active" : "");
     b.textContent = label;
@@ -34,38 +37,67 @@ export async function renderMobility(root) {
   root.appendChild(body);
 
   if (activeGroup === "shoulder") await renderShoulder(body, program);
+  else if (activeGroup === "frontsplit") await renderFrontSplit(body, program);
   else await renderPike(body, program);
 }
 
-// ─── Pike (MFTK) ────────────────────────────────────────────────────────────
+// ─── Phase-rotating programs (Pike, Front Split) ──────────────────────
 // The phase auto-advances every `sessionsPerPhase` logged sessions. We keep a
-// running count of completed session-days in state (mobilitySessions /
-// mobilityLastDate), bumped once on the first logged entry each day. The current
-// phase is derived from that count, so it advances on its own and is stable for
-// the whole day — without re-reading months of history on every open.
+// running count of completed session-days in state, bumped once on the first
+// logged entry each day. The current phase is derived from that count, so it
+// advances on its own and is stable for the whole day — without re-reading
+// months of history on every open.
+//
+// `io` carries everything program-specific: which day collection to read/write
+// and which state keys hold the counter. Those keys MUST be distinct per program
+// or logging one would advance the other's phase.
+const PIKE_IO = {
+  getDay: getMobilityDay, setDay: setMobilityDay,
+  sessionsKey: "mobilitySessions", lastDateKey: "mobilityLastDate",
+};
+const FRONT_SPLIT_IO = {
+  getDay: getFrontSplitDay, setDay: setFrontSplitDay,
+  sessionsKey: "frontSplitSessions", lastDateKey: "frontSplitLastDate",
+};
+
 async function renderPike(root, program) {
-  const [state, todayDoc] = await Promise.all([getState(), getMobilityDay(isoDay())]);
-  const mob = program.mobility;
+  return renderPhased(root, program.mobility, PIKE_IO);
+}
+
+async function renderFrontSplit(root, program) {
+  return renderPhased(root, program.frontSplit, FRONT_SPLIT_IO);
+}
+
+async function renderPhased(root, cfg, io) {
+  const [state, todayDoc] = await Promise.all([getState(), io.getDay(isoDay())]);
   const today = isoDay();
 
   // Prior sessions = everything before today. If today is already counted, back
   // it out so the phase/session number stays put for the whole day.
-  let countedToday = state.mobilityLastDate === today;
-  const totalSessions = state.mobilitySessions || 0;
+  let countedToday = state[io.lastDateKey] === today;
+  const totalSessions = state[io.sessionsKey] || 0;
   const priorSessions = countedToday ? totalSessions - 1 : totalSessions;
-  const per = mob.sessionsPerPhase || 8;
-  const nPhases = mob.phases.length;
-  const phaseIdx = Math.floor(priorSessions / per) % nPhases;
-  const cycle = Math.floor(priorSessions / (per * nPhases)) + 1;
-  const sessionInPhase = (priorSessions % per) + 1;
-  const phase = mob.phases[phaseIdx];
-  const nextPhase = mob.phases[(phaseIdx + 1) % nPhases];
+  const per = cfg.sessionsPerPhase || 8;
+  const nPhases = cfg.phases.length;
+  const blocks = Math.floor(priorSessions / per);
+  // `holdLastPhase` programs stay on the final phase once they reach it (the
+  // Front Split PDF's Phase 3 lives in the Toolkit, not here) instead of silently
+  // dropping back to Phase 1 the way the Pike rotation does.
+  const hold = Boolean(cfg.holdLastPhase);
+  const phaseIdx = hold ? Math.min(blocks, nPhases - 1) : blocks % nPhases;
+  const phase = cfg.phases[phaseIdx];
+  const onFinalHold = hold && phaseIdx === nPhases - 1;
+  const nextPhase = onFinalHold ? null : cfg.phases[(phaseIdx + 1) % nPhases];
+  const cycle = hold ? 1 : Math.floor(priorSessions / (per * nPhases)) + 1;
+  const sessionInPhase = onFinalHold
+    ? priorSessions - phaseIdx * per + 1
+    : (priorSessions % per) + 1;
 
   // Called on the first logged entry of the day to advance the session counter.
   async function countSessionOnce() {
     if (countedToday) return;
     countedToday = true;
-    await setState({ mobilitySessions: (state.mobilitySessions || 0) + 1, mobilityLastDate: today });
+    await setState({ [io.sessionsKey]: (state[io.sessionsKey] || 0) + 1, [io.lastDateKey]: today });
   }
 
   const entries = todayDoc.entries || {};
@@ -74,17 +106,24 @@ async function renderPike(root, program) {
   head.className = "phase-strip";
   const lastOfPhase = sessionInPhase >= per;
   head.innerHTML = `
-    <div><span class="phase-name">${escapeHtml(phase.name)}</span> · session ${sessionInPhase} of ${per}${cycle > 1 ? ` · cycle ${cycle}` : ""}</div>
-    <div>${lastOfPhase ? "next: " + escapeHtml(nextPhase.name) : ""}</div>
+    <div><span class="phase-name">${escapeHtml(phase.name)}</span> · session ${sessionInPhase}${sessionInPhase <= per ? ` of ${per}` : ""}${cycle > 1 ? ` · cycle ${cycle}` : ""}</div>
+    <div>${nextPhase && lastOfPhase ? "next: " + escapeHtml(nextPhase.name) : (onFinalHold && lastOfPhase ? "final phase" : "")}</div>
   `;
   root.appendChild(head);
+
+  if (phase.equipment) {
+    const eq = document.createElement("div");
+    eq.className = "equipment";
+    eq.textContent = `Equipment: ${phase.equipment}`;
+    root.appendChild(eq);
+  }
 
   for (const ex of phase.exercises) {
     const entry = entries[ex.key] || { sets: [] };
     const persist = async (sets, hasData) => {
       entries[ex.key] = { sets };
       if (hasData) await countSessionOnce();
-      await setMobilityDay(today, { phaseId: phase.id, entries });
+      await io.setDay(today, { phaseId: phase.id, entries });
     };
     root.appendChild(buildExerciseCard(ex, entry, persist));
   }
@@ -176,7 +215,7 @@ function buildExerciseCard(ex, entry, persist) {
     const cols = ["32px", "1fr", hasWeight ? "1fr" : "", hasMeas ? "1fr" : ""].filter(Boolean).join(" ");
     sets.className = "msets";
     sets.style.gridTemplateColumns = cols;
-    const repsLabel = /s$/.test(ex.prescription.reps || "") ? "Secs" : "Reps";
+    const repsLabel = /s\+?$/.test(ex.prescription.reps || "") ? "Secs" : "Reps";
     sets.insertAdjacentHTML("beforeend",
       `<div class="hdr">#</div><div class="hdr">${repsLabel}</div>` +
       (hasWeight ? `<div class="hdr">Wt (lb)</div>` : "") +
