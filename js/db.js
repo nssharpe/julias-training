@@ -1,6 +1,6 @@
 import {
   initializeFirestore, persistentLocalCache, doc, getDoc, setDoc, updateDoc, addDoc, collection,
-  query, where, orderBy, limit, getDocs, serverTimestamp
+  query, where, orderBy, limit, getDocs, serverTimestamp, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
 let db, uid;
@@ -22,8 +22,8 @@ export function initDb(app, userUid) {
 // ─── In-memory cache (per page session) ─────────────────────────────────────
 // Survives tab switches within a single page load. Firestore's persistent cache
 // handles cross-load speed; this avoids even re-deserializing on each tab switch.
-const memo = { state: null, sessions: null, prehabRange: null, mobilityRange: null, shoulderRange: null, frontSplitRange: null, prehabConfig: null };
-export function invalidateCache(keys = ["state", "sessions", "prehabRange", "mobilityRange", "shoulderRange", "frontSplitRange", "prehabConfig"]) {
+const memo = { state: null, sessions: null, prehabRange: null, mobilityRange: null, shoulderRange: null, frontSplitRange: null, prehabConfig: null, skills: null };
+export function invalidateCache(keys = ["state", "sessions", "prehabRange", "mobilityRange", "shoulderRange", "frontSplitRange", "prehabConfig", "skills"]) {
   for (const k of keys) memo[k] = null;
 }
 
@@ -243,6 +243,31 @@ export async function getFrontSplitRange(daysBack = 56) {
   })).reverse();
   memo.frontSplitRange = out;
   return out;
+}
+
+// ─── Skills ─────────────────────────────────────────────────────────────────
+// One doc per skill/combo at users/{uid}/skills/{id} =
+//   { name, event, createdAt, days: { "YYYY-MM-DD": { hits, misses } } }
+// Per-day totals live on the skill itself, so the whole tab (stats included)
+// is one collection read.
+export async function getSkills() {
+  if (memo.skills) return memo.skills;
+  const snap = await getDocs(userCol("skills"));
+  const out = [];
+  snap.forEach(d => out.push({ id: d.id, ...d.data() }));
+  memo.skills = out;
+  return out;
+}
+
+export async function saveSkill(skill) {
+  const { id, ...data } = skill;
+  await setDoc(userDoc("skills", id), data);
+  if (memo.skills) memo.skills = [...memo.skills.filter(s => s.id !== id), skill];
+}
+
+export async function deleteSkill(id) {
+  await deleteDoc(userDoc("skills", id));
+  if (memo.skills) memo.skills = memo.skills.filter(s => s.id !== id);
 }
 
 export function isoDay(d = new Date()) {

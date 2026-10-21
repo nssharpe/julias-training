@@ -7,6 +7,7 @@ import { renderStrength } from "./strength.js";
 import { renderPrehab } from "./prehab.js";
 import { renderMobility } from "./mobility.js";
 import { renderTracking } from "./tracking.js";
+import { renderSkills } from "./skills.js";
 
 // ─── Firebase config ────────────────────────────────────────────────────────
 // Paste your project's config below. The web API key is safe to commit; access
@@ -31,6 +32,7 @@ const tabStrength = document.getElementById("tab-strength");
 const tabPrehab = document.getElementById("tab-prehab");
 const tabMobility = document.getElementById("tab-mobility");
 const tabTracking = document.getElementById("tab-tracking");
+const tabSkills = document.getElementById("tab-skills");
 const tabTempo = document.getElementById("tab-tempo");
 
 // The Tempo tab embeds the separately hosted Tempo app, so updates to that app
@@ -72,6 +74,7 @@ async function activateTab(name) {
   tabPrehab.classList.toggle("hidden", name !== "prehab");
   tabMobility.classList.toggle("hidden", name !== "mobility");
   tabTracking.classList.toggle("hidden", name !== "tracking");
+  tabSkills.classList.toggle("hidden", name !== "skills");
   tabTempo.classList.toggle("hidden", name !== "tempo");
   // The strength phase strip is only relevant on the Strength tab; Pre-hab and
   // Mobility render their own headers (Mobility shows its own phase/session strip).
@@ -81,6 +84,7 @@ async function activateTab(name) {
     else if (name === "prehab") await renderPrehab(tabPrehab);
     else if (name === "mobility") await renderMobility(tabMobility);
     else if (name === "tracking") await renderTracking(tabTracking);
+    else if (name === "skills") await renderSkills(tabSkills);
     else if (name === "tempo") renderTempo(tabTempo);
   } catch (e) {
     console.error(e);

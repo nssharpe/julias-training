@@ -266,3 +266,47 @@ body.dragging-active { cursor: grabbing; }
   height: calc(100dvh - 64px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   width: 100%; border: 0; background: var(--bg);
 }
+
+/* Skills tab. */
+.skills-bar { display: flex; gap: 8px; margin-bottom: 8px; }
+.skills-bar button { font-size: 14px; min-height: 40px; padding: 8px 12px; }
+.ev-dd {
+  flex: 1; min-width: 0; display: flex; justify-content: space-between; gap: 8px;
+  text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mu { color: var(--muted); }
+.ev-menu { background: var(--surface); border-radius: var(--radius); padding: 6px; margin-bottom: 12px; }
+.ev-all { display: flex; gap: 8px; padding: 4px 4px 8px; }
+.ev-all button { flex: 1; min-height: 36px; padding: 4px 8px; font-size: 14px; color: var(--accent); }
+.ev-row {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  background: transparent; border-radius: 10px; padding: 8px 10px; text-align: left;
+}
+.ev-row .box {
+  width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--muted);
+  display: inline-flex; align-items: center; justify-content: center; font-size: 13px;
+}
+.ev-row.on .box { background: var(--accent-2); border-color: var(--accent-2); color: #0a3a0a; font-weight: 700; }
+.skill-head { display: flex; align-items: flex-start; gap: 8px; }
+.skill-head h2 { flex: 1; }
+.ev-tag {
+  flex: 0 0 auto; margin-top: 4px; font-size: 12px; font-weight: 600;
+  padding: 2px 8px; border-radius: 6px; background: #1d3550; color: var(--accent);
+}
+.skill-stats { display: flex; gap: 6px; margin: 8px 0 12px; }
+.skill-stats > div { flex: 1; background: var(--surface-2); border-radius: 10px; padding: 6px 4px; text-align: center; }
+.skill-stats b { display: block; font-size: 17px; }
+.skill-stats span { font-size: 11px; color: var(--muted); }
+.skill-log { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+.skill-ctr { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+.skill-ctr > div { display: flex; align-items: center; gap: 2px; }
+.skill-ctr button { width: 38px; padding: 0; font-size: 20px; }
+.skill-ctr .n { min-width: 26px; text-align: center; font-size: 18px; font-weight: 600; }
+.skill-log .save { min-width: 72px; }
+.undo-bar {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 25;
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface-2); border-radius: 999px; padding: 6px 6px 6px 16px; font-size: 14px;
+}
+.undo-bar button { min-height: 32px; padding: 4px 14px; color: var(--accent); border-radius: 999px; }
