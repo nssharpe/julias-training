@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- App icon: a woman hitting a double-biceps pose. Source for the PNGs in
+       this folder; re-export at 180/192/512/1024 after editing. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7cc4ff"/>
+      <stop offset="1" stop-color="#4a5dff"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <circle cx="512" cy="560" r="400" fill="#ffffff" opacity="0.12"/>
+
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <!-- Ponytail (behind head) -->
+    <path transform="translate(0 45)" d="M560 250 C 700 200, 760 300, 720 420 C 700 360, 650 320, 590 320 Z" fill="#3b2418"/>
+
+    <!-- Arms: upper arm out, forearm up, fist by the head -->
+    <g fill="none" stroke="#f2c4a0">
+      <path d="M350 600 L 190 610" stroke-width="120"/>
+      <path d="M190 615 L 215 380" stroke-width="100"/>
+      <path d="M674 600 L 834 610" stroke-width="120"/>
+      <path d="M834 615 L 809 380" stroke-width="100"/>
+    </g>
+    <!-- Biceps -->
+    <ellipse cx="268" cy="555" rx="88" ry="72" fill="#f2c4a0"/>
+    <ellipse cx="756" cy="555" rx="88" ry="72" fill="#f2c4a0"/>
+    <path d="M222 540 Q 268 500 318 530" fill="none" stroke="#e0a982" stroke-width="10"/>
+    <path d="M802 540 Q 756 500 706 530" fill="none" stroke="#e0a982" stroke-width="10"/>
+    <!-- Fists -->
+    <circle cx="218" cy="360" r="66" fill="#f2c4a0"/>
+    <circle cx="806" cy="360" r="66" fill="#f2c4a0"/>
+    <path d="M178 345 h 70 M180 375 h 66" stroke="#e0a982" stroke-width="10"/>
+    <path d="M846 345 h -70 M844 375 h -66" stroke="#e0a982" stroke-width="10"/>
+
+    <!-- Neck + shoulders -->
+    <rect x="467" y="440" width="90" height="120" rx="30" fill="#f2c4a0"/>
+    <circle cx="372" cy="610" r="78" fill="#f2c4a0"/>
+    <circle cx="652" cy="610" r="78" fill="#f2c4a0"/>
+
+    <!-- Tank top -->
+    <path d="M400 560 Q 512 640 624 560 L 690 640 L 640 1024 L 384 1024 L 334 640 Z" fill="#0f1115"/>
+    <text x="512" y="790" font-family="Helvetica Neue, Arial, sans-serif" font-weight="800" font-size="130" fill="#9be39b" text-anchor="middle">J</text>
+
+    <g transform="translate(0 45)">
+    <!-- Head -->
+    <ellipse cx="512" cy="360" rx="100" ry="115" fill="#f2c4a0"/>
+    <!-- Hair cap -->
+    <path d="M410 365 C 400 240, 470 220, 512 222 C 580 222, 630 260, 614 365 C 590 300, 530 285, 470 300 C 440 310, 420 335, 410 365 Z" fill="#3b2418"/>
+    <!-- Headband -->
+    <path d="M414 318 C 470 280, 560 275, 612 318" fill="none" stroke="#ff5a8a" stroke-width="26"/>
+    <!-- Face -->
+    <circle cx="474" cy="375" r="11" fill="#3b2418"/>
+    <path d="M538 377 q 14 -12 28 0" fill="none" stroke="#3b2418" stroke-width="9"/>
+    <path d="M470 418 Q 512 455 554 418" fill="none" stroke="#3b2418" stroke-width="10"/>
+    <circle cx="452" cy="408" r="16" fill="#ff8fa8" opacity="0.5"/>
+    <circle cx="578" cy="408" r="16" fill="#ff8fa8" opacity="0.5"/>
+    </g>
+  </g>
+</svg>
