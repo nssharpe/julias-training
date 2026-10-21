@@ -3,7 +3,7 @@
 //
 // Config shape:
 //   {
-//     items: { [id]: { name?, sets?, reps?, load?, rest?, tempo?, group?,
+//     items: { [id]: { name?, sets?, reps?, load?, rest?, tempo?, group?, every?,
 //                      since?, until?, custom? } },
 //     order: [id, ...]
 //   }
@@ -17,7 +17,7 @@ const REGION_RANK = { shoulder: 0, ankle: 2 };
 export const EMPTY_CONFIG = { items: {}, order: [] };
 
 // Full merged list — every item that has ever existed, in display order.
-// Date filtering is a separate step (see isActiveOn / visiblePrehabItems).
+// Date filtering is a separate step (see isActiveOn / isDueOn).
 export function buildPrehabItems(program, config) {
   const patches = config?.items || {};
 
@@ -56,14 +56,82 @@ export function isActiveOn(it, dateKey) {
   return true;
 }
 
-// What to draw for a given day. `showAlt` includes the every-other-day items.
-export function visiblePrehabItems(items, dateKey, showAlt) {
-  return items.filter(it => isActiveOn(it, dateKey) && (it.group !== "alt" || showAlt));
-}
-
 // Daily items that counted towards the streak / compliance on a given date.
 export function dailyItemsOn(items, dateKey) {
   return items.filter(it => it.group !== "alt" && isActiveOn(it, dateKey));
+}
+
+// ─── Scheduling ─────────────────────────────────────────────────────────────
+// Each item repeats every `every` days (older configs: daily = 1, alt = 2). It
+// is due from (last day with ≥1 set done) + every. If it isn't touched on a due
+// day it simply stays due — carried over day to day, never doubled — until at
+// least one set is done, which restarts the countdown from that day.
+// Everything is derived from the per-day history, so no extra state is stored.
+
+export function everyOf(it) {
+  const n = Math.round(Number(it.every));
+  if (n >= 1) return n;
+  return it.group === "alt" ? 2 : 1;
+}
+
+export function setsDoneOf(saved) {
+  return Array.isArray(saved) ? saved.filter(Boolean).length : 0;
+}
+
+export function daysBetween(fromKey, toKey) {
+  return Math.round((Date.parse(toKey) - Date.parse(fromKey)) / 86400000);
+}
+
+export function addDays(dateKey, n) {
+  const d = new Date(Date.parse(dateKey) + n * 86400000);
+  return d.toISOString().slice(0, 10);
+}
+
+// range: [{ date, data: { items: { [id]: [bool, ...] } } }] → { [id]: [dates asc] }
+export function doneDatesById(range) {
+  const out = {};
+  for (const day of [...range].sort((a, b) => (a.date < b.date ? -1 : 1))) {
+    for (const [id, saved] of Object.entries(day.data?.items || {})) {
+      if (setsDoneOf(saved) > 0) (out[id] ||= []).push(day.date);
+    }
+  }
+  return out;
+}
+
+// The date the item next falls due, looking only at history before `dateKey`.
+// null = never done (due from the day it became active).
+export function dueDateOn(it, dateKey, doneDates) {
+  const prior = (doneDates || []).filter(d => d < dateKey);
+  if (prior.length === 0) return it.since || null;
+  return addDays(prior[prior.length - 1], everyOf(it));
+}
+
+export function isDueOn(it, dateKey, doneDates) {
+  if (!isActiveOn(it, dateKey)) return false;
+  const due = dueDateOn(it, dateKey, doneDates);
+  return due === null || due <= dateKey;
+}
+
+// % of assigned sets done over the 7 days ending `todayKey`. An item carried
+// over several days is one assignment, not one per day: it counts once, and
+// gets credit for the sets done on the day it was finally done.
+export function weekCompletion(items, range, todayKey) {
+  const done = doneDatesById(range);
+  const byDate = new Map(range.map(r => [r.date, r.data?.items || {}]));
+  let assigned = 0, completed = 0;
+  for (const it of items) {
+    const sets = Math.max(1, Number(it.sets) || 1);
+    let carrying = false; // due yesterday and untouched → today is the same assignment
+    for (let i = 6; i >= 0; i--) {
+      const day = addDays(todayKey, -i);
+      if (!isDueOn(it, day, done[it.id])) { carrying = false; continue; }
+      const setsDone = setsDoneOf((byDate.get(day) || {})[it.id]);
+      if (!carrying) assigned += sets;
+      completed += Math.min(sets, setsDone);
+      carrying = setsDone === 0;
+    }
+  }
+  return assigned === 0 ? null : Math.round((completed / assigned) * 100);
 }
 
 export function newPrehabId() {

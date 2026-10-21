@@ -51,7 +51,7 @@ onAuthStateChanged(auth, async (user) => {
   appEl.classList.remove("hidden");
   initDb(app, user.uid);
   setupTabs();
-  await activateTab("strength");
+  await activateTab("prehab");
 });
 
 function setupTabs() {

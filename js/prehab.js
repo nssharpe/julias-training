@@ -1,76 +1,90 @@
-import { loadProgram, isAlternatingDay } from "./program.js";
+import { loadProgram } from "./program.js";
 import {
-  getState, getPrehabDay, setPrehabDay, getPrehabRange, isoDay,
+  getPrehabDay, setPrehabDay, getPrehabRange, isoDay,
   getPrehabConfig, savePrehabConfig,
 } from "./db.js";
 import {
-  buildPrehabItems, visiblePrehabItems, dailyItemsOn, newPrehabId,
+  buildPrehabItems, isActiveOn, isDueOn, dueDateOn, doneDatesById, everyOf,
+  weekCompletion, daysBetween, newPrehabId,
 } from "./prehab-config.js";
 import { toast } from "./app.js";
 
-// Whether to show the every-other-day items on a day they're not scheduled, so
-// they can be edited/reordered on any day. Resets on reload.
-let showAltOverride = false;
+// Whether to also show items that aren't due today, so they can be edited,
+// reordered or done early. Resets on reload.
+let showAllOverride = false;
 let rootEl = null;
 
 export async function renderPrehab(root) {
   rootEl = root;
-  // Paint the shell + checkboxes as soon as we have today's doc + program. The
-  // streak (which needs ~60 docs) is computed async and patched in once ready.
-  const [program, state, dayDoc, config] = await Promise.all([
-    loadProgram(),
-    getState(),
-    getPrehabDay(isoDay()),
-    getPrehabConfig(),
-  ]);
   const dayKey = isoDay();
+  // Due-ness depends on when each item was last done, so the history range is
+  // needed before the list can be drawn (Firestore's local cache keeps it quick).
+  const [program, dayDoc, config, range] = await Promise.all([
+    loadProgram(),
+    getPrehabDay(dayKey),
+    getPrehabConfig(),
+    getPrehabRange(60),
+  ]);
   const items = dayDoc.items || {};
 
-  const isAltDay = isAlternatingDay(state);
-  const showAlt = isAltDay || showAltOverride;
   const all = buildPrehabItems(program, config);
-  const todays = visiblePrehabItems(all, dayKey, showAlt);
+  const done = doneDatesById(range.filter(r => r.date !== dayKey));
+  const active = all.filter(it => isActiveOn(it, dayKey));
+  const due = active.filter(it => isDueOn(it, dayKey, done[it.id]));
+  const dueIds = new Set(due.map(it => it.id));
+  const notDue = active.length - due.length;
+  const shown = showAllOverride ? active : due;
 
   root.innerHTML = "";
   const head = document.createElement("div");
   head.className = "streak";
-  const altNote = isAltDay ? ""
-    : showAltOverride ? " · showing alternating items (not scheduled today)"
-    : " · alternating items off today";
-  head.innerHTML = `<strong>…🔥</strong> day streak (daily items)${altNote}`;
   root.appendChild(head);
-  // Compute the streak in the background so checkboxes are interactive immediately.
-  computeStreak(all).then(streak => {
-    head.innerHTML = `<strong>${streak}🔥</strong> day streak (daily items)${altNote}`;
-  });
+  // Today's doc is authoritative for today; the range copy may be stale.
+  const paintHead = () => {
+    const withToday = [...range.filter(r => r.date !== dayKey), { date: dayKey, data: { items } }];
+    const pct = weekCompletion(all, withToday, dayKey);
+    head.innerHTML = pct === null
+      ? "Nothing assigned in the last 7 days"
+      : `<strong>${pct}%</strong> of assigned sets done · last 7 days`;
+  };
+  paintHead();
 
   const bar = document.createElement("div");
   bar.className = "prehab-bar";
   bar.innerHTML = `
     <button class="ghost" data-act="add">+ Add</button>
-    ${isAltDay ? "" : `<button class="ghost${showAltOverride ? " on" : ""}" data-act="alt">${showAltOverride ? "Hide" : "Show"} alternating day</button>`}
+    ${notDue ? `<button class="ghost${showAllOverride ? " on" : ""}" data-act="all">${showAllOverride ? "Hide" : "Show"} not due (${notDue})</button>` : ""}
   `;
   root.appendChild(bar);
   bar.querySelector('[data-act="add"]').onclick = () => openEditor(null, program, config);
-  const altBtn = bar.querySelector('[data-act="alt"]');
-  if (altBtn) altBtn.onclick = () => { showAltOverride = !showAltOverride; renderPrehab(root); };
+  const allBtn = bar.querySelector('[data-act="all"]');
+  if (allBtn) allBtn.onclick = () => { showAllOverride = !showAllOverride; renderPrehab(root); };
 
   const list = document.createElement("div");
   list.className = "prehab-list";
   root.appendChild(list);
 
-  for (const it of todays) {
+  if (shown.length === 0) {
+    list.innerHTML = `<div class="streak">Nothing due today 🎉</div>`;
+  }
+
+  for (const it of shown) {
     const saved = items[it.id] || [];
     const checks = Array.from({ length: it.sets }, (_, i) => Boolean(saved[i]));
+    const isDue = dueIds.has(it.id);
+    const dueDate = dueDateOn(it, dayKey, done[it.id]);
+    let status = "";
+    if (!isDue) status = ` · next due ${fmtDay(dueDate)}`;
+    else if (done[it.id] && dueDate < dayKey) status = ` · carried over from ${fmtDay(dueDate)}`;
     const el = document.createElement("article");
-    el.className = "prehab-item";
+    el.className = "prehab-item" + (isDue ? "" : " not-due");
     el.dataset.id = it.id;
     el.innerHTML = `
       <div class="prehab-head">
         <h3>${escapeHtml(it.name)}</h3>
         <button class="edit-btn ghost">Edit</button>
       </div>
-      <div class="meta">${it.sets} × ${escapeHtml(it.reps)} · ${escapeHtml(it.load)} · rest ${escapeHtml(it.rest)} · tempo ${escapeHtml(it.tempo)}${it.group === "alt" ? " · alternating" : ""}</div>
+      <div class="meta">${it.sets} × ${escapeHtml(it.reps)} · ${escapeHtml(it.load)} · rest ${escapeHtml(it.rest)} · tempo ${escapeHtml(it.tempo)} · ${freqLabel(everyOf(it))}${status}</div>
       <div class="checks">
         ${checks.map((c, i) => `<button class="check ${c ? "on" : ""}" data-set="${i}">${c ? "✓" : i + 1}</button>`).join("")}
       </div>
@@ -86,6 +100,7 @@ export async function renderPrehab(root) {
         await setPrehabDay(dayKey, { items });
         btn.classList.toggle("on", cur[i]);
         btn.textContent = cur[i] ? "✓" : (i + 1);
+        paintHead();
       };
     });
   }
@@ -93,27 +108,17 @@ export async function renderPrehab(root) {
   enableDragReorder(list, program, config, all);
 }
 
-async function computeStreak(all) {
-  const range = await getPrehabRange(60);
-  // Walk from today backwards; count consecutive days where every daily item that
-  // was *active on that date* is fully checked. `since` / `until` mean adding or
-  // deleting an exercise never rewrites the historical streak. A saved set array
-  // has the length that was required on the day it was created, so checking that
-  // it's all-true keeps history correct even after the set count is edited.
-  let streak = 0;
-  for (let i = range.length - 1; i >= 0; i--) {
-    const dayDate = range[i].date; // "YYYY-MM-DD"
-    const items = range[i].data.items || {};
-    const required = dailyItemsOn(all, dayDate);
-    if (required.length === 0) break;
-    const allDone = required.every(def => {
-      const sets = items[def.id];
-      return Boolean(sets) && sets.length > 0 && sets.every(Boolean);
-    });
-    if (allDone) streak++;
-    else if (i < range.length - 1) break; // allow today to be in-progress without breaking streak
-  }
-  return streak;
+function freqLabel(n) {
+  return n === 1 ? "daily" : n === 2 ? "every other day" : n === 7 ? "weekly" : `every ${n} days`;
+}
+
+function fmtDay(dateKey) {
+  const diff = daysBetween(isoDay(), dateKey);
+  if (diff === 0) return "today";
+  if (diff === 1) return "tomorrow";
+  if (diff === -1) return "yesterday";
+  const d = new Date(`${dateKey}T12:00:00`);
+  return d.toLocaleDateString(undefined, { weekday: "short", ...(Math.abs(diff) > 6 ? { month: "short", day: "numeric" } : {}) });
 }
 
 // ─── Add / edit sheet ───────────────────────────────────────────────────────
@@ -145,11 +150,8 @@ function openEditor(item, program, config) {
         </label>
       `).join("")}
       <label class="field">
-        <span>Frequency</span>
-        <select data-key="group">
-          <option value="daily">Daily</option>
-          <option value="alt">Every other day (alternating)</option>
-        </select>
+        <span>Repeat every … days (1 = daily, 2 = every other day, 7 = weekly)</span>
+        <input type="number" data-key="every" min="1" max="60" inputmode="numeric" value="${everyOf(cur)}">
       </label>
       <div class="sheet-actions">
         ${isNew ? "" : `<button class="danger" data-act="delete">Delete</button>`}
@@ -159,7 +161,6 @@ function openEditor(item, program, config) {
     </div>
   `;
   document.body.appendChild(overlay);
-  overlay.querySelector('[data-key="group"]').value = cur.group === "alt" ? "alt" : "daily";
   overlay.querySelector('[data-key="name"]').focus();
 
   const close = () => overlay.remove();
@@ -172,27 +173,16 @@ function openEditor(item, program, config) {
       const v = overlay.querySelector(`[data-key="${f.key}"]`).value.trim();
       patch[f.key] = f.type === "number" ? Math.max(1, Math.min(12, Number(v) || 1)) : v;
     }
-    patch.group = overlay.querySelector('[data-key="group"]').value;
+    patch.every = Math.max(1, Math.min(60, Math.round(Number(overlay.querySelector('[data-key="every"]').value)) || 1));
     if (!patch.name) { toast("Give it a title first."); return; }
 
     const next = cloneConfig(config);
     if (isNew) {
       const id = newPrehabId();
-      // New items only count from today forward, so the streak/compliance history
+      // New items only count from today forward, so the completion history
       // isn't retroactively penalised.
       next.items[id] = { ...patch, custom: true, since: isoDay() };
       next.order = orderedIds(next, program);
-    } else if (patch.group !== (item.group || "daily")) {
-      // Changing daily ↔ alternating would rewrite what was *required* on every
-      // past day, so it's a soft delete + recreate instead: the history stays
-      // attached to the old id, and the new one only counts from today.
-      const today = isoDay();
-      next.items[item.id] = { ...(next.items[item.id] || {}), until: today };
-      const id = newPrehabId();
-      next.items[id] = { ...patch, custom: true, since: today };
-      const ids = orderedIds(next, program).filter(x => x !== id);
-      ids.splice(ids.indexOf(item.id) + 1, 0, id); // keep it where the old one sat
-      next.order = ids;
     } else {
       next.items[item.id] = { ...(next.items[item.id] || {}), ...patch };
     }
@@ -204,7 +194,7 @@ function openEditor(item, program, config) {
 
   const delBtn = overlay.querySelector('[data-act="delete"]');
   if (delBtn) delBtn.onclick = async () => {
-    if (!confirm(`Delete "${item.name}"? It keeps counting towards your streak up to today.`)) return;
+    if (!confirm(`Delete "${item.name}"? Your past history for it is kept.`)) return;
     const next = cloneConfig(config);
     // Soft delete: `until` is exclusive, so from today on it's neither shown nor
     // required, but every past day still counts it.
@@ -268,8 +258,8 @@ function enableDragReorder(list, program, config, all) {
     el.classList.remove("dragging");
     el.style.transform = "";
 
-    // Persist: visible ids in their new order, with hidden items (alternating on
-    // an off day, deleted ones) kept in their existing relative positions.
+    // Persist: visible ids in their new order, with hidden items (not due
+    // today, deleted ones) kept in their existing relative positions.
     const visible = [...list.children].map(c => c.dataset.id);
     const visibleSet = new Set(visible);
     let vi = 0;

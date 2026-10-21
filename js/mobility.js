@@ -3,6 +3,8 @@ import {
   getState, setState, getMobilityDay, setMobilityDay, isoDay,
   getShoulderDay, setShoulderDay, getFrontSplitDay, setFrontSplitDay,
 } from "./db.js";
+import { PARTS, advanceRotation, togglePart } from "./rotation.js";
+import { daysBetween } from "./prehab-config.js";
 
 // The Mobility tab hosts three sub-programs, switchable via a sub-tab row:
 //   • Pike (MFTK) — auto-advances one phase every `sessionsPerPhase` (8) logged
@@ -13,18 +15,42 @@ import {
 //   • Front Split (MFTK) — same phase rotation as Pike but with `holdLastPhase`,
 //     so it settles on the final phase instead of cycling back. Its own
 //     collection and its own session counter.
-// Active sub-tab is module-level (resets to Pike on each page load).
+//
+// Above the sub-tabs sits the body-part rotation (see rotation.js): pick which
+// parts you're working on and one is "up" until it's logged, then the next
+// comes up 2 days later. Sub-tabs are limited to the selected parts.
+//
+// Active sub-tab is module-level; until tapped it follows the rotation.
 
-let activeGroup = "pike";
+let activeGroup = null;
+let editingParts = false;
 
 export async function renderMobility(root) {
-  const program = await loadProgram();
-  root.innerHTML = "";
+  const [program, state] = await Promise.all([loadProgram(), getState()]);
+  const today = isoDay();
 
-  // Sub-tab switcher (Pike / Shoulder).
+  // Roll the rotation forward if the part that was up has since been logged.
+  const lastDates = Object.fromEntries(PARTS.map(p => [p.id, state[p.lastDateKey]]));
+  const stored = state.mobilityRotation || null;
+  const rot = advanceRotation(stored, lastDates);
+  if (rot && JSON.stringify(rot) !== JSON.stringify(stored)) await setState({ mobilityRotation: rot });
+  const selected = rot?.parts?.length ? rot.parts : [];
+
+  root.innerHTML = "";
+  root.appendChild(buildRotationCard(rot, today, () => renderMobility(root)));
+
+  const tabs = selected.length ? PARTS.filter(p => selected.includes(p.id)) : PARTS;
+  if (!activeGroup || !tabs.some(p => p.id === activeGroup)) {
+    // Default view: today's finished part if one was just done, else what's up.
+    activeGroup = rot?.lastDone?.date === today && tabs.some(p => p.id === rot.lastDone.part)
+      ? rot.lastDone.part
+      : (rot?.current || tabs[0].id);
+  }
+
+  // Sub-tab switcher.
   const switcher = document.createElement("div");
   switcher.className = "subtab";
-  for (const [id, label] of [["pike", "Pike"], ["shoulder", "Shoulder"], ["frontsplit", "Front Split"]]) {
+  for (const { id, label } of tabs) {
     const b = document.createElement("button");
     b.className = "subtabbtn" + (activeGroup === id ? " active" : "");
     b.textContent = label;
@@ -39,6 +65,50 @@ export async function renderMobility(root) {
   if (activeGroup === "shoulder") await renderShoulder(body, program);
   else if (activeGroup === "frontsplit") await renderFrontSplit(body, program);
   else await renderPike(body, program);
+}
+
+function buildRotationCard(rot, today, rerender) {
+  const card = document.createElement("div");
+  card.className = "rotation";
+  const label = id => PARTS.find(p => p.id === id)?.label || id;
+  const hasParts = Boolean(rot?.parts?.length);
+
+  let line;
+  if (!hasParts) {
+    line = "Choose the body parts you're working on:";
+  } else {
+    const diff = daysBetween(today, rot.dueDate);
+    const when = diff === 0 ? "due today"
+      : diff > 0 ? `due ${fmtDay(rot.dueDate, diff)}`
+      : `due since ${fmtDay(rot.dueDate, diff)}`;
+    const doneToday = rot.lastDone?.date === today ? `✓ ${escapeHtml(label(rot.lastDone.part))} done today · ` : "";
+    line = `${doneToday}Up next: <strong>${escapeHtml(label(rot.current))}</strong> · ${when}`;
+  }
+  const showChips = !hasParts || editingParts;
+  card.innerHTML = `
+    <div class="rotation-head">
+      <div>${line}</div>
+      ${hasParts ? `<button class="ghost edit-btn">${editingParts ? "Done" : "Edit"}</button>` : ""}
+    </div>
+    ${showChips ? `<div class="chips">${PARTS.map(p =>
+      `<button class="chip${rot?.parts?.includes(p.id) ? " on" : ""}" data-part="${p.id}">${escapeHtml(p.label)}</button>`).join("")}</div>` : ""}
+  `;
+  const editBtn = card.querySelector(".edit-btn");
+  if (editBtn) editBtn.onclick = () => { editingParts = !editingParts; rerender(); };
+  card.querySelectorAll(".chip").forEach(btn => {
+    btn.onclick = async () => {
+      editingParts = true;
+      await setState({ mobilityRotation: togglePart(rot, btn.dataset.part, today) });
+      rerender();
+    };
+  });
+  return card;
+}
+
+function fmtDay(dateKey, diff) {
+  if (diff === 1) return "tomorrow";
+  if (diff === -1) return "yesterday";
+  return new Date(`${dateKey}T12:00:00`).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
 
 // ─── Phase-rotating programs (Pike, Front Split) ──────────────────────
@@ -131,10 +201,11 @@ async function renderPhased(root, cfg, io) {
 
 // ─── Shoulder Flexion ───────────────────────────────────────────────────────
 // Fixed routine, logged per session. No phase rotation, no session counter
-// (Tracking derives sessions/week straight from the stored range).
+// (Tracking derives sessions/week straight from the stored range); only the
+// last-logged date is kept, for the body-part rotation.
 async function renderShoulder(root, program) {
   const today = isoDay();
-  const doc = await getShoulderDay(today);
+  const [state, doc] = await Promise.all([getState(), getShoulderDay(today)]);
   const sh = program.shoulder;
   const entries = doc.entries || {};
 
@@ -145,8 +216,10 @@ async function renderShoulder(root, program) {
 
   for (const ex of sh.exercises) {
     const entry = entries[ex.key] || { sets: [] };
-    const persist = async (sets) => {
+    const persist = async (sets, hasData) => {
       entries[ex.key] = { sets };
+      // The rotation reads this to know Shoulder was done today.
+      if (hasData && state.shoulderLastDate !== today) await setState({ shoulderLastDate: today });
       await setShoulderDay(today, { entries });
     };
     root.appendChild(buildExerciseCard(ex, entry, persist));
@@ -155,8 +228,8 @@ async function renderShoulder(root, program) {
 
 // ─── Shared exercise card ───────────────────────────────────────────────────
 // `persist(sets, hasData)` is called whenever the user changes a value. `hasData`
-// is true when the changed set holds real data (used by Pike to bump its session
-// counter; ignored by Shoulder).
+// is true when the changed set holds real data (Pike / Front Split bump their
+// session counter; Shoulder records its last-logged date).
 function buildExerciseCard(ex, entry, persist) {
   const card = document.createElement("article");
   card.className = "card";
