@@ -24,6 +24,18 @@ test("wraps around, and a single part repeats every 2 days", () => {
   assert.equal(one.dueDate, "2026-10-22");
 });
 
+test("adding a part after the only part was done → the new part is up next", () => {
+  // Pick Pike (already logged today), then add Front Split.
+  let r = togglePart(null, "pike", "2026-10-20");
+  r = advanceRotation(r, { pike: "2026-10-20" });
+  assert.equal(r.current, "pike");
+  r = togglePart(r, "frontsplit", "2026-10-20");
+  r = advanceRotation(r, { pike: "2026-10-20" });
+  assert.equal(r.current, "frontsplit");
+  assert.equal(r.dueDate, "2026-10-22");
+  assert.deepEqual(r.lastDone, { part: "pike", date: "2026-10-20" });
+});
+
 test("toggling parts", () => {
   const a = togglePart(null, "frontsplit", "2026-10-20");
   assert.deepEqual(a, { parts: ["frontsplit"], current: "frontsplit", dueDate: "2026-10-20" });

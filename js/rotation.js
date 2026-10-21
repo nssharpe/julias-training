@@ -34,6 +34,10 @@ export function advanceRotation(rot, lastDates) {
   if (!rot?.parts?.length) return rot || null;
   let r = { ...rot, parts: canonical(rot.parts) };
   if (!r.parts.includes(r.current)) r.current = r.parts[0];
+  // The part just done is never also up next unless it's the only one. This
+  // happens when a part is added after a single-part rotation wrapped round
+  // onto itself (e.g. pick Pike, already done today, then add Front Split).
+  if (r.lastDone?.part === r.current && r.parts.length > 1) r.current = nextAfter(r.parts, r.current);
   for (let guard = 0; guard < 10; guard++) {
     const last = lastDates[r.current];
     if (!last || last < r.dueDate) break;

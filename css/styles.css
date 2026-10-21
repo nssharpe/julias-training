@@ -257,3 +257,12 @@ body.dragging-active { cursor: grabbing; }
   border-radius: 999px; color: var(--muted); border: 1px solid var(--surface-2);
 }
 .chip.on { color: var(--accent); border-color: var(--accent); }
+
+/* Tempo tab: the embedded Tempo app fills the space above the tab bar. */
+.tempo-frame {
+  position: fixed; left: 0; right: 0;
+  top: env(safe-area-inset-top);
+  /* An iframe won't stretch between top/bottom, so size it explicitly. */
+  height: calc(100dvh - 64px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  width: 100%; border: 0; background: var(--bg);
+}

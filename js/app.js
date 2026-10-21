@@ -31,6 +31,12 @@ const tabStrength = document.getElementById("tab-strength");
 const tabPrehab = document.getElementById("tab-prehab");
 const tabMobility = document.getElementById("tab-mobility");
 const tabTracking = document.getElementById("tab-tracking");
+const tabTempo = document.getElementById("tab-tempo");
+
+// The Tempo tab embeds the separately hosted Tempo app, so updates to that app
+// show up here automatically. It's loaded on first visit and then kept alive,
+// so a running set keeps its beat while you check things off on other tabs.
+const TEMPO_URL = "https://jzsharpe.github.io/tempo/";
 
 document.getElementById("signin-btn").onclick = async () => {
   try {
@@ -66,6 +72,7 @@ async function activateTab(name) {
   tabPrehab.classList.toggle("hidden", name !== "prehab");
   tabMobility.classList.toggle("hidden", name !== "mobility");
   tabTracking.classList.toggle("hidden", name !== "tracking");
+  tabTempo.classList.toggle("hidden", name !== "tempo");
   // The strength phase strip is only relevant on the Strength tab; Pre-hab and
   // Mobility render their own headers (Mobility shows its own phase/session strip).
   phaseStrip.classList.toggle("hidden", name !== "strength");
@@ -74,10 +81,22 @@ async function activateTab(name) {
     else if (name === "prehab") await renderPrehab(tabPrehab);
     else if (name === "mobility") await renderMobility(tabMobility);
     else if (name === "tracking") await renderTracking(tabTracking);
+    else if (name === "tempo") renderTempo(tabTempo);
   } catch (e) {
     console.error(e);
     toast("Error loading tab — check console.");
   }
+}
+
+function renderTempo(root) {
+  if (root.firstChild) return;
+  const frame = document.createElement("iframe");
+  frame.className = "tempo-frame";
+  frame.src = TEMPO_URL;
+  frame.title = "Tempo";
+  // Keep-awake and beeps need explicit permission inside an embedded page.
+  frame.allow = "screen-wake-lock; autoplay";
+  root.appendChild(frame);
 }
 
 // Toast helper exported for other modules
